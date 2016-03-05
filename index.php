@@ -35,13 +35,12 @@ if (!is_readable(JETHRO_ROOT.'/db_conf.php')) {
 require_once JETHRO_ROOT.'/db_conf.php';
 require_once JETHRO_ROOT.'/include/jethroconf.php';
 require_once JETHRO_ROOT.'/conf.php';
-
 // Initialise system
 require_once JETHRO_ROOT.'/include/init.php';
 
-
 // Set up the user system
 require_once JETHRO_ROOT.'/include/user_system.class.php';
+
 require_once JETHRO_ROOT.'/include/system_controller.class.php';
 $GLOBALS['user_system'] = new User_System();
 if ($GLOBALS['user_system']->getCurrentUser() == NULL) {

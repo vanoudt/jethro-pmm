@@ -1955,3 +1955,19 @@ td.run-sheet-comments * {
 		border-bottom: 2px solid;
 	}
 }
+
+table.system-config-db {
+	width: 100%;
+}
+table.system-config-db th {
+	width: 40%;
+	max-width: 40%;
+}
+table.system-config-db td input[type='text'] {
+	width: 100%;
+}
+table.system-config-db td .description {
+	font-size: x-small;
+	font-style: italic;
+	display: block;
+}

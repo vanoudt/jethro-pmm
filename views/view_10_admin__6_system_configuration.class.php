@@ -59,8 +59,67 @@ class View_Admin__System_Configuration extends View {
 		}
 	}
 
+	public function printViewForCategory($category_id,$category_title, $category_description ) {
+	 	$db = $GLOBALS['db'];
+                $sql = "SELECT * FROM settings WHERE category=" . $category_id;
+                $res = $db->queryAll($sql, null, null, true, true);
+		if (sizeof($res) == 0) { return; }
+		?>
+		<table class="table no-autofocus system-config-db">
+			<tr><th colspan="2"><h3><?php echo $category_title; ?></h3></th></tr>
+			<?php if ($category_description != '') { ?>
+			<tr><td colspan="2"><?php echo $category_description;?></td></tr>
+			<?php }
+	                foreach ($res as $settingid => $setting) {
+                        ?>
+                        <tr>
+                                <th><?php echo $setting['title'];?></th>
+                                <td>
+				<?php
+				switch ($setting['type']) {
+					case 1: // Text
+						?>
+					<input type="text" id="<?php echo $setting['setting']; ?>" value="<?php echo $setting['value']; ?>" />
+					<?php	break;
+					case 2: // Multi line text
+						?>
+                                        <input type="text" id="<?php echo $setting['setting']; ?>" value="<?php echo $setting['value']; ?>" />
+                                        <?php   break; 
+					case 3: // Number
+						?>
+					<input type="number" id="<?php echo $setting['setting']; ?>" value="<?php echo $setting['value']; ?>" />
+					<?php	break;
+					case 4: // Checkbox (True/False) - stored as 1/0
+						?>
+					<input type="checkbox" id="<?php echo $setting['setting']; ?>" <?php if ($setting['value'] == 1) { echo "checked"; } ?> />
+					<?php	break;
+					case 5: // Option
+					case 6: // Multiple choice
+					default: // Default to text
+						?>
+                                        <input type="text" id="<?php echo $setting['setting']; ?>" value="<?php echo $setting['value']; ?>" />
+                                        <?php   break; 
+
+				} ?>
+                                        <span class="description"><?php echo $setting['description'] ;?></span>
+                                </td>
+                        </tr>
+                        <?php
+        	        }
+                	?>
+		</table>
+		<?php
+
+	}
+
 	public function printView() 
 	{
+		$db = $GLOBALS['db'];
+		$sql = "SELECT * FROM settings_categories ORDER BY sort_order;";
+		$res = $db->queryAll($sql, null, null, true, true);
+		foreach ($res as $id => $category) {
+			$this->printViewForCategory($id, $category['title'], $category['description']);
+		}
 		?>
 		<p>Some of the following settings can be edited on this page.  Other settings are read only on this page, but can be adjusted by getting your 
 		<?php if (defined('SYSADMIN_HREF')) echo '<a href="'.SYSADMIN_HREF.'">'; ?>

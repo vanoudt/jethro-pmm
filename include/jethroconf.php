@@ -1,9 +1,11 @@
 <?php
 /* Settings Type:
  * 1 = text
- * 2 = option
- * 3 = multichoice
- * 4 = number
+ * 2 = multiline text
+ * 3 = number
+ * 4 = checkbox
+ * 5 = option
+ * 6 = multichoice
  */
 // Set up the DB
 if (!defined('DSN')) define('DSN', constant('PRIVATE_DSN'));

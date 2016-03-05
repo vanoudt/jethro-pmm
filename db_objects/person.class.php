@@ -255,7 +255,7 @@ class Person extends DB_Object
 								<?php if (defined(SMS_SAVE_TO_NOTE_BY_DEFAULT)) { 
 									echo '<label>Save SMS as note:<input type="checkbox" name="saveasnote" accesskey="n" ';
 									if (SMS_SAVE_TO_NOTE_BY_DEFAULT) { echo "checked"; }
-									echo ' /></label>'
+									echo ' /></label>';
 								} ?>
 								<input type="submit" class="btn" value="Send" accesskey="s" onclick="if (!$('[name=message]').val()) { alert('Enter a message first'); return false; }" />
 								<button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
