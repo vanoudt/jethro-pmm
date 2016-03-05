@@ -28,15 +28,17 @@ define('JETHRO_ROOT', dirname(__FILE__));
 define('TEMPLATE_DIR', JETHRO_ROOT.'/templates/');
 
 // Load configuration
-if (!is_readable(JETHRO_ROOT.'/conf.php')) {
+if (!is_readable(JETHRO_ROOT.'/db_conf.php')) {
 	trigger_error('Jethro configuration file not found.  You need to copy conf.php.sample to conf.php and edit it before Jethro can run', E_USER_ERROR);
 	exit();
 }
+require_once JETHRO_ROOT.'/db_conf.php';
+require_once JETHRO_ROOT.'/include/jethroconf.php';
 require_once JETHRO_ROOT.'/conf.php';
 
 // Initialise system
-if (!defined('DSN')) define('DSN', constant('PRIVATE_DSN'));
 require_once JETHRO_ROOT.'/include/init.php';
+
 
 // Set up the user system
 require_once JETHRO_ROOT.'/include/user_system.class.php';
