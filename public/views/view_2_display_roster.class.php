@@ -6,13 +6,13 @@ class View_Display_Roster extends View
 	function processView()
 	{
 		if (!empty($_REQUEST['roster_view'])) {
-			if (defined('PUBLIC_ROSTER_SECRET') 
+			if (defined('PUBLIC_ROSTER_SECRET')
 					&& strlen(PUBLIC_ROSTER_SECRET)
 					&& (array_get($_REQUEST, 'secret') != PUBLIC_ROSTER_SECRET)
 			) {
 				add_message("Sorry, this roster URL is not valid because it does not contain the secret key.  Please contact your church administrator for assistance.", 'error');
 			} else {
-				$this->_roster_view =& $GLOBALS['system']->getDBObject('roster_view', (int)$_REQUEST['roster_view']);
+				$this->_roster_view = $GLOBALS['system']->getDBObject('roster_view', (int)$_REQUEST['roster_view']);
 			}
 		}
 	}
@@ -34,7 +34,7 @@ class View_Display_Roster extends View
 				$end_date = date('Y-m-d', strtotime('+'.(((int)$_REQUEST['weeks']*7)+1).' days'));
 			}
 			$this->_roster_view->printView(NULL, $end_date, FALSE, TRUE);
-		} else if (defined('PUBLIC_ROSTER_SECRET') 
+		} else if (defined('PUBLIC_ROSTER_SECRET')
 					&& strlen(PUBLIC_ROSTER_SECRET)
 					&& (array_get($_REQUEST, 'secret') != PUBLIC_ROSTER_SECRET)) {
 			print_message("Please contact your church administrator to get the private URLs for viewing rosters");

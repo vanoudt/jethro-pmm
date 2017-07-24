@@ -40,13 +40,13 @@ class View__Edit_Group extends Abstract_View_Edit_Object
 
 				// overwrite_membership means if they are already in the group with a different status,
 				// their membership status will be updated.  Used for single-person actions but not bulk.
-				$overwrite = array_get($_POST, 'overwrite_membership'); 
+				$overwrite = array_get($_POST, 'overwrite_membership');
 				if (!empty($personids)) {
 					if (!is_array($personids)) {
 						$personids = Array($personids);
 					}
 					foreach ($personids as $personid) {
-						$new_member =& $GLOBALS['system']->getDBObject('person', (int)$personid);
+						$new_member = $GLOBALS['system']->getDBObject('person', (int)$personid);
 						$newstatus = ($mstatus == '_PRESERVE_') ? $old_memberships[$personid]['membership_status_id'] : $mstatus;
 						if ($new_member->id) {
 							if ($this->_edited_object->addMember((int)$personid, $newstatus, $overwrite)) {

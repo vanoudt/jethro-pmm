@@ -6,7 +6,7 @@ class System_Controller
 	private $_friendly_errors = false;
 	private $_base_dir = '';
 	private $_object_cache = Array();
-	
+
 	static private $instance = NULL;
 
 	/**
@@ -79,11 +79,13 @@ class System_Controller
 		error_reporting($error_level);
 
 		set_error_handler(Array($this, '_handleError'));
+		set_exception_handler(Array($this, '_handleException'));
 	}
 
 	public function run()
 	{
 		if (!empty($_REQUEST['call'])) {
+			$this->initErrorHandler();
 			$call_name = str_replace('/', '', $_REQUEST['call']);
 			// Try both the Jethro and system_root calls folders
 			$filename = ''; //dirname(dirname(__FILE__)).'/calls/call_'.$call_name.'.class.php';
@@ -109,7 +111,10 @@ class System_Controller
 					$view_filename = $_SESSION['views'][$this->_base_dir][$bits[0]]['children'][$bits[1]]['filename'];
 					$view_classname = 'View_'.$bits[0].'__'.$bits[1];
 				}
-			} else if (isset($_SESSION['views'][$this->_base_dir][$bits[0]])) {
+			} else if (isset($_SESSION['views'][$this->_base_dir][$bits[0]])
+				&& isset($_SESSION['views'][$this->_base_dir][$bits[0]]['filename'])) {
+				// NB if they have permission to a sub-view (eg services > view) but not to the top level
+				// view (eg services) then the view will be in the array but without a filename
 				$view_filename = $_SESSION['views'][$this->_base_dir][$bits[0]]['filename'];
 				$view_classname = 'View_'.$bits[0];
 			}
@@ -156,11 +161,11 @@ class System_Controller
 				// pardon the formatting - IE is having a white-space tantrum
 				?>
 				<li class="<?php echo $class; ?> dropdown">
-					<a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown"><?php echo ucwords(str_replace('_', ' ', $name)); ?><i class="caret"></i></a>
+					<a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown"><?php echo gettext(ucwords(str_replace('_', ' ', $name))); ?><i class="caret"></i></a>
 						<ul class="dropdown-menu"><?php
 							foreach ($data['children'] as $subname => $sub_details) {
 								$class = ($current_view == $name.'__'.$subname) ? 'active' : '';
-								?><li class="<?php echo $class; ?>"><a href="?view=<?php echo $name.'__'.$subname; ?>"><?php echo ucwords(str_replace('_', ' ', $subname)); ?></a></li><?php
+								?><li class="<?php echo $class; ?>"><a href="?view=<?php echo $name.'__'.$subname; ?>"><?php echo gettext(ucwords(str_replace('_', ' ', $subname))); ?></a></li><?php
 							}
 							?></ul>
 				</li>
@@ -196,11 +201,11 @@ class System_Controller
 		return $this->_object_cache[$classname][$id];
 	}
 
-	public function getDBObjectData($classname, $params=Array(), $logic='OR', $order='')
+	public function getDBObjectData($classname, $params=Array(), $logic='OR', $order='', $refreshCache=FALSE)
 	{
 		static $cache = Array();
 		$cacheKey = "$classname-$logic-$order-".serialize($params);
-		if (!isset($cache[$cacheKey])) {
+		if ($refreshCache || !isset($cache[$cacheKey])) {
 			$this->includeDBClass($classname);
 			$sample = new $classname();
 			$cache[$cacheKey] = $sample->getInstancesData($params, $logic, $order);
@@ -215,7 +220,6 @@ class System_Controller
 			case 'COMMIT':
 			case 'ROLLBACK':
 				$r = $GLOBALS['db']->query(strtoupper($operation));
-				check_db_result($r);
 		}
 	}
 
@@ -226,11 +230,13 @@ class System_Controller
 
 	public function _handleError($errno, $errstr, $errfile, $errline)
 	{
+		if (error_reporting() == 0) return; // the "@" shutup-operator was used
 		$send_email = true;
 		$exit = false;
 		switch ($errno) {
 			case E_ERROR:
 			case E_USER_ERROR:
+				if (FALSE !== strpos($errstr, 'variables should be assigned by reference')) return;
 				$bg = 'error';
 				$title = 'SYSTEM ERROR (ERROR)';
 				$exit = true;
@@ -240,23 +246,36 @@ class System_Controller
 				$bg = 'warning';
 				$title = 'SYSTEM ERROR (WARNING)';
 				break;
-			case E_USER_NOTICE: 
+			case E_NOTICE:
+				$showTechDetails = ifdef('SHOW_ERROR_DETAILS', (JETHRO_VERSION == 'DEV'));
+				$bg = $showTechDetails ? 'info' : NULL; // on prod, send emails but show nothing in browser
+				$title = 'SYSTEM ERROR (NOTICE)';
+				break;
+			case E_USER_NOTICE:
 				$send_email = false;
 				if ($this->_friendly_errors) {
 					add_message('Error: '.$errstr, 'failure');
 					return;
 				}
-				// else deliberate fallthrough
-			case E_NOTICE:
 				$bg = 'info';
-				$title = 'SYSTEM ERROR (NOTICE)';
+				$title = 'NOTICE';
 				break;
 			default:
-				return; // E_STRICT or E_DEPRECATED
+				$bg = 'info';
+				$title = 'SYSTEM ERROR';
+				break;
 		}
 
 		$bt = debug_backtrace();
 		array_shift($bt); // remove reference to this handleError function
+
+		$this->_reportError($title, $bg, $errstr, $errfile, $errline, $bt, $send_email);
+		if ($exit) exit();
+
+	}
+
+	private function _reportError($title, $bg, $errstr, $errfile, $errline, $bt, $send_email)
+	{
 		foreach ($bt as &$b) {
 			if (!empty($b['args'])) {
 				foreach ($b['args'] as &$v) {
@@ -266,34 +285,52 @@ class System_Controller
 			unset($b['object']);
 		}
 
-		?>
-		<div class="alert<?php if(isset($bg)){ echo" alert-".$bg;} ?>">
-			<h4><?php echo $title; ?></h4>
-			<p><?php echo $errstr; ?></p>
-		<?php
-		if ((JETHRO_VERSION == 'DEV') || (defined('SHOW_ERROR_BACKTRACES') && constant('SHOW_ERROR_BACKTRACES'))) {
+		$showTechDetails = ifdef('SHOW_ERROR_DETAILS', (JETHRO_VERSION == 'DEV'));
+		if ($bg) {
 			?>
-			<u class="clickable" onclick="var parentDiv=this.parentNode; while (parentDiv.tagName != 'DIV') { parentDiv = parentDiv.parentNode; }; with (parentDiv.getElementsByTagName('PRE')[0].style) { display = (display == 'block') ? 'none' : 'block' }">Show Details</u>
-			<pre style="display: none; background: white; font-weight: normal; color: black"><b>Line <?php echo $errline; ?> of File <?php echo $errfile; ?></b>
+			<div class="alert<?php if(isset($bg)){ echo" alert-".$bg;} ?>">
 			<?php
-			print_r($bt); 
+			if ($showTechDetails) {
+				?>
+				<h4><?php echo $title; ?></h4>
+				<p><?php echo $errstr; ?></p>
+				<?php
+			} else {
+				echo _('An error occurred. Please contact your system administrator for help.');
+			}
+			if ($showTechDetails) {
+				?>
+				<u class="clickable" onclick="var parentDiv=this.parentNode; while (parentDiv.tagName != 'DIV') { parentDiv = parentDiv.parentNode; }; with (parentDiv.getElementsByTagName('PRE')[0].style) { display = (display == 'block') ? 'none' : 'block' }">Show Details</u>
+				<pre style="display: none; background: white; font-weight: normal; color: black"><b>Line <?php echo $errline; ?> of File <?php echo $errfile; ?></b>
+	<?php
+				print_r($bt);
+				?>
+				</pre>
+				<?php
+			}
 			?>
-			</pre>
+			</div>
 			<?php
 		}
-		?>
-		</div>
-		<?php
 		if ($send_email && defined('ERRORS_EMAIL_ADDRESS') && constant('ERRORS_EMAIL_ADDRESS')) {
 			$content = "$errstr \nLine $errline of $errfile\n\n";
-			if (!empty($GLOBALS['user_system'])) $content .= "Current user: ".$GLOBALS['user_system']->getCurrentUser('username');
-			$content .= "\n\nRequest: ".print_r($_REQUEST,1)."\n\n";
-			$content .= 'Referer: '.array_get($_SERVER, 'HTTP_REFERER', '')."\n\n";
+			if (!empty($GLOBALS['user_system'])) $content .= "USER:       ".$GLOBALS['user_system']->getCurrentUser('username')."\n";
+			$content .= 'REFERER:    '.array_get($_SERVER, 'HTTP_REFERER', '')."\n";
+			$content .= 'USER_AGENT: '.array_get($_SERVER, 'HTTP_USER_AGENT', '')."\n\n";
+			$safe_request = $_REQUEST;
+			unset($safe_request['password']);
+			$content .= "REQUEST: \n".print_r($safe_request,1)."\n\n";
+			$content .= "BACKTRACE:\n";
 			$content .= print_r($bt, 1);
-			@mail(constant('ERRORS_EMAIL_ADDRESS'), 'Jethro Error from '.build_url(array()), $content);
+			@mail(constant('ERRORS_EMAIL_ADDRESS'), 'Jethro Error from '.BASE_URL, $content);
 		}
 		if ($send_email) error_log("$errstr - Line $errline of $errfile");
-		if ($exit) exit();
+	}
+
+	public function _handleException($exception)
+	{
+		$this->_reportError('Fatal Error (Exception)', 'error', $exception->getMessage(), $exception->getFile(), $exception->getLine(), $exception->getTrace(), TRUE);
+		exit();
 	}
 
 	public function runHooks($hook_name, $params)
@@ -310,18 +347,18 @@ class System_Controller
 		}
 	}
 
-	public function featureEnabled($feature) 
+	public function featureEnabled($feature)
 	{
-		$enabled_features = explode(',', strtoupper(ENABLED_FEATURES));
+		$enabled_features = explode(',', strtoupper(ifdef('ENABLED_FEATURES', '')));
 		return in_array(strtoupper($feature), $enabled_features);
 	}
-	
+
 	public static function checkConfigHealth()
 	{
 		if (REQUIRE_HTTPS && (FALSE === strpos(BASE_URL, 'https://'))) {
 			trigger_error("Configuration file error: If you set REQUIRE_HTTPS to true, your BASE_URL must start with https", E_USER_ERROR);
 		}
-		
+
 		if (substr(BASE_URL, -1) != '/') {
 			trigger_error("Configuration file error: Your BASE_URL must end with a slash", E_USER_ERROR);
 		}

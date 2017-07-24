@@ -95,10 +95,10 @@ $(document).ready(function() {
 		var myLinks = t.find('a, input');
 		if (!myLinks.length) {
 			childLinks = $(this).parent('tr').find('a');
-			if (childLinks.length) {
+			if (childLinks.length == 1) {
 				self.location = childLinks[0].href;
 			}
-		} else if (myLinks.filter('a').length) {
+		} else if (myLinks.filter('a').length == 1) {
 			self.location = myLinks[0].href;
 		}
 	});
@@ -148,7 +148,8 @@ $(document).ready(function() {
 	 * <div class="option" data-mytype="x"></div>
 	 * <div class="option" data-mytype="y"></div>
 	 */
-	$('input[data-toggle=visible], select[data-toggle=visible]').not('[type=checkbox]').change(function() {
+	// needs to attach to document so that dynamically-generated buttons can work
+	$( document ).on('change', 'input[data-toggle=visible][type!=checkbox], select[data-toggle=visible]', function(event) {
 		var base = $(document);
 		var targetExp = $(this).attr('data-target');
 		if (/^row /.test(targetExp)) {
@@ -157,11 +158,20 @@ $(document).ready(function() {
 		}
 		target = base.find(targetExp);
 		target.hide();
-		var myFilter = '['+$(this).attr('data-match-attr')+'='+this.value+']';
-		target.filter(myFilter).show();
-	}).change();
+		var attrName = $(this).attr('data-match-attr');
+		var targetValue = this.value;
+		target.each(function() {
+			if (-1 != $.inArray(targetValue, $(this).attr(attrName).split(' '))) {
+				$(this).show();
+			}
+		})
+	})
+	$('input[data-toggle=visible][type!=checkbox], select[data-toggle=visible]').change();
 
-	$('[data-toggle=visible]').not('input[type!=checkbox], select').click(function(event) {
+	// needs to attach to document so that dynamically-generated buttons can work
+	$( document ).on('click', '[data-toggle=visible]', function(event) {
+		if ($(this).is('input[type!=checkbox], select')) return;
+
 		var targetExp = $(this).attr('data-target');
 		var target = null;
 		if (targetExp == 'next') {
@@ -185,6 +195,21 @@ $(document).ready(function() {
 	$('input[data-set-form-action], button[data-set-form-action]').click(function() {
 		this.form.action = $(this).attr('data-set-form-action');
 	});
+
+	// Ability to have input fields that become compulsory only when certain submit buttons are clicked
+	$('input[data-require-fields]').click(function() {
+		var ok = true;
+
+		$($(this).attr('data-require-fields')).each(function() {
+			if (!this.value) {
+				alert('A mandatory field has been left blank');
+				TBLib.markErroredInput(this);
+				ok = false;
+				return;
+			}
+		})
+		return ok;
+	})
 
 	var selectChooserRadios = $('input.select-chooser-radio');
 	if (selectChooserRadios.length) {
@@ -408,7 +433,7 @@ TBLib.handleRegexInputBlur = function()
 TBLib.invalidBibleBox = null;
 TBLib.handleBibleRefBlur = function()
 {
-	var re=/^(genesis|gen|genes|exodus|exod|ex|leviticus|levit|lev|numbers|nums|num|deuteronomy|deut|joshua|josh|judges|judg|ruth|1samuel|1sam|1sam|2samuel|2sam|2sam|1kings|1ki|1ki|2kings|2ki|2ki|1chronicles|1chron|1chr|1chron|1chr|2chronicles|2chron|2chr|2chr|2chron|ezra|nehemiah|nehem|neh|esther|esth|est|job|psalms|psalm|pss|ps|proverbs|prov|pr|ecclesiastes|eccles|eccl|ecc|songofsolomon|songofsongs|songofsong|sos|songofsol|isaiah|isa|jeremiah|jerem|jer|lamentations|lam|ezekiel|ezek|daniel|dan|hosea|hos|joel|jl|jo|amos|am|obadiah|obd|ob|jonah|jon|micah|mic|nahum|nah|habakkuk|hab|zephaniah|zeph|haggai|hag|zechariah|zech|zec|malachi|mal|matthew|mathew|matt|mat|mark|mk|luke|lk|john|jn|actsoftheapostles|acts|ac|romans|rom|1corinthians|1cor|1cor|2corinthians|2cor|2cor|galatians|gal|ephesians|eph|philippians|phil|colossians|col|1thessalonians|1thess|1thes|1thes|2thessalonians|2thess|2thes|2thes|1timothy|1tim|1tim|2timothy|2tim|2tim|titus|tit|ti|philemon|hebrews|heb|james|jam|1peter|1pet|1pet|2peter|2pet|2pet|1john|1jn|1jn|2john|2jn|2jn|3john|3jn|3jn|jude|revelation|rev)(([0-9]+)([\-\:.])){0,1}(([0-9]+)([\-\:.])){0,1}(([0-9]+)([\-\:.])){0,1}([0-9]+)$/gi;
+	var re=/^(genesis|gen|genes|exodus|exod|ex|leviticus|levit|lev|numbers|nums|num|deuteronomy|deut|joshua|josh|judges|judg|ruth|1samuel|1sam|1sam|2samuel|2sam|2sam|1kings|1ki|1ki|2kings|2ki|2ki|1chronicles|1chron|1chr|1chron|1chr|2chronicles|2chron|2chr|2chr|2chron|ezra|nehemiah|nehem|neh|esther|esth|est|job|psalms|psalm|pss|ps|proverbs|prov|pr|ecclesiastes|eccles|eccl|ecc|sg|song|songs|sng|songofsolomon|songofsongs|songofsong|sos|songofsol|isaiah|isa|jeremiah|jerem|jer|lamentations|lam|ezekiel|ezek|daniel|dan|hosea|hos|joel|jl|jo|amos|am|obadiah|obd|ob|jonah|jon|micah|mic|nahum|nah|habakkuk|hab|zephaniah|zeph|haggai|hag|zechariah|zech|zec|malachi|mal|matthew|mathew|matt|mat|mark|mk|luke|lk|john|jn|actsoftheapostles|acts|ac|romans|rom|1corinthians|1cor|1cor|2corinthians|2cor|2cor|galatians|gal|ephesians|eph|philippians|phil|colossians|col|1thessalonians|1thess|1thes|1thes|2thessalonians|2thess|2thes|2thes|1timothy|1tim|1tim|2timothy|2tim|2tim|titus|tit|ti|philemon|hebrews|heb|james|jam|1peter|1pet|1pet|2peter|2pet|2pet|1john|1jn|1jn|2john|2jn|2jn|3john|3jn|3jn|jude|revelation|rev)(([0-9]+)([\-\:.])){0,1}(([0-9]+)([\-\:.])){0,1}(([0-9]+)([\-\:.])){0,1}([0-9]+)$/gi;
 	this.value = this.value.trim();
 	if (this.value == '') return true;
 	if (!this.value.replace(/ /g, '').match(re)) {
@@ -495,6 +520,7 @@ TBLib.expandTable = function(table)
 	var originalRow = rows[index];
 	var newRow = $(originalRow).clone(true,true);
 	var newRowInputs = newRow.find('input, textarea, select');
+	var incrementNames = !$(table).hasClass('no-name-increment');
 	newRowInputs.each(function() {
 		if (!this.name) return;
 		// clear fields in the new row, except those inside a 'preserve-value' container
@@ -511,7 +537,9 @@ TBLib.expandTable = function(table)
 			}
 		}
 		if ($(this).hasClass('bubble-option-classes')) this.change();
-		this.name = this.name.replace('_'+index+'_', '_'+rows.length+'_');
+		if (incrementNames) {
+			this.name = this.name.replace('_'+index+'_', '_'+rows.length+'_');
+		}
 		if (this.name == 'index[]') this.value = rows.length; // so that after re-ordering, the order can be detected server-side
 		if (((this.type == 'radio') || (this.type == 'checkbox')) && (this.value == index)) this.value = rows.length;
 	});

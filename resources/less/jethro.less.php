@@ -47,7 +47,7 @@ if (is_readable($confFile)) {
 /*** GRADIENT ****/
 
 #login-header,
-.person-details-box h3,
+.details-box h3,
 #jethro-nav-background,
 .table thead th, .table tfoot th,
 .accordion-heading
@@ -63,7 +63,7 @@ if (is_readable($confFile)) {
 }
 .table thead th, .table tfoot th, .table thead th *, .table tfoot th * {
 	/* use a colour that will contrast with the background */
-	color: contrast(@jethroDarkish, @jethroDarkText, @jethroLightText);
+	color: contrast(@jethroDarkish, @jethroDarkText, @jethroLightText) !important;
 	font-weight: normal !important; /* bold makes the contrast too stark */
 }
 
@@ -188,7 +188,7 @@ body {
 }
 @media (min-width: 1025px) {
 	#jethro-overall-width {
-		/*min-width: 1020px;*/
+		min-width: 800px;
 	}
 }
 @media (max-width: 1025px) {
@@ -198,6 +198,9 @@ body {
 	#jethro-nav-toprow {
 		padding-left: 10px !important;
 	}
+}
+@media (max-width: 640px) {
+	#body { margin: 0px 7px }
 }
 #jethro-nav-background {
 	position: absolute;
@@ -225,7 +228,11 @@ body {
 #jethro-public #jethro-nav-toprow h1 {
 	line-height: 40px;
 }
-
+/* mobile back button */
+#jethro-nav-toprow .icon-chevron-left {
+	float: left;
+	margin-top: 9px;
+}
 #jethro-nav-toprow .brand {
 	background: url(../img/jethro-white.png);
 	background-repeat: no-repeat;
@@ -442,6 +449,7 @@ h3 {
   line-height: 1.4;
   font-weight: normal;
   border-bottom: 1px solid;
+  margin-top: 20px;
 }
 h4 {
   font-size: 14px;
@@ -466,6 +474,9 @@ h3:first-child, h4:first-child, h5:first-child {
 
 /*********** GENERAL ********************/
 
+#body .cke_bottom .cke_toolbar {
+	float: right !important;
+}
 hr, table.object-summary tr.divider-before > td, table.object-summary tr.divider-before > th {
 	border-top-width: 1px;
 	border-top-color: @grayLighter !important;
@@ -578,7 +589,7 @@ input[type="radio"] {
 	min-width: 50ex;
 }
 .table {
-	border-bottom: 1px solid @grayLighter;
+	border-bottom: 1px solid @tableBorder;
 }
 /* nested tables - see list of family members within single person view */
 .table td table {
@@ -588,18 +599,16 @@ input[type="radio"] {
 .table td table tr:first-child td {
 	border-top: 0px;
 }
-#body table.no-borders td, #body table.no-borders th {
+#body table.no-borders, #body table.no-borders td, #body table.no-borders th {
 	border-width: 0px !important;
 }
 #body .no-padding td, #body .no-padding th {
 	padding: 0px !important;
 }
-/* THIS IS MOSTLY IMPLEMENTED BY JETHRO.JS IN A SPECIAL WAY*/
+/* WIDTH OF NARROW COLS IS IMPLEMENTED BY JETHRO.JS IN A SPECIAL WAY*/
 td.narrow, th.narrow, .object-summary th {
-	xwidth: 1%;
 	white-space: nowrap;
 }
-
 .fill-me * {
 	width: 100%;
 	margin-right: 0;
@@ -611,16 +620,44 @@ td.narrow, th.narrow, .object-summary th {
 .clickable, table.clickable-rows td, table.clickable-rows th, img.icon {
 	cursor: pointer;
 }
-
+.insert-row-below {
+	color: #8bef26;
+	font-size: 18px;
+	text-decoration: none;
+	font-weight: bold;
+	position: relative;
+	top: 3ex;
+	cursor: pointer;
+}
+.insert-row-below:before {
+	content: "+";
+}
 .cursor-move {
 	cursor: move;
 }
-.smallprint, .help-inline {
-	font-size: 85%;
+tr:last-child .insert-row-below {
+	display: none;
+}
+.smallprint, .help-inline, .help-block, .smallprint code {
+	font-size: 12px;
 	line-height: 130%;
 	margin-left: 0;
 	margin-top: 1px;
 	padding: 0;
+	font-style: italic;
+	color: @gray;
+}
+.custom-field-tooltip {
+	background: @jethroGrayish !important;
+	border-radius: 4px;
+	padding: 3px 6px;
+	display: none;
+	margin-top: 2px;
+	width: 300px;
+	font-style: italic;
+}
+.compact-2col {
+	max-width: 800px;
 }
 .compact-2col label, .compact-2col div  {
 	float: left;
@@ -630,24 +667,27 @@ td.narrow, th.narrow, .object-summary th {
 	-moz-box-sizing: border-box;
 	box-sizing: border-box;
 }
-.compact-2col div input {
+.compact-2col>div>input:first-child {
 	width: 92%;
 }
-.compact-2col div select {
+.compact-2col>div>select {
 	width: 100%;
 }
 .compact-2col label {
-	margin-top: 5px;
+	margin-top: 8px;
 	margin-bottom: 0px;
 }
-
+.compact-2col label.fullwidth, .compact-2col div.fullwidth {
+	width: 100% !important;
+}
+/* in the add-family page */
 .family-member-box {
 	border: 1px solid @jethroDarkest;;
 	border-radius: 5px;
 	padding: 0px 5px 5px 5px;
 	overflow: auto;
 	height: auto;
-	background: @jethroLightest; /* lighter yellow */
+	background: @jethroLightest;
 	margin-bottom: 10px;
 }
 .align-right {
@@ -662,11 +702,10 @@ td.narrow, th.narrow, .object-summary th {
 .right {
 	text-align: right !important;
 }
-select, input, textarea {
+select, input, textarea,div.editor {
 	width: auto;
 	max-width: 97%;
 }
-/* disused ? */
 .full-width-input {
 	width: 99.5%;
 	-webkit-box-sizing: border-box;
@@ -693,8 +732,8 @@ table.object-summary td, table.object-summary th {
 	border-width: 0px !important;
 }
 
-/* make the table of person dates and family members line up with its label */
-table.object-summary td table.borderless tr:first-child td {
+/* when an object summary table has a table in its data cell, make it line up */
+table.object-summary>tbody>tr>td>table>tbody>tr:first-child td {
 	padding-top: 0px !important;
 }
 #body tr.archived td, #body tr.archived a, #body tr.archived .btn-link {
@@ -708,6 +747,9 @@ table.object-summary td table.borderless tr:first-child td {
 }
 .form-horizontal .control-group {
 	margin-bottom: 8px !important;
+}
+.form-inline {
+	line-height: 32px;
 }
 .controls-text {
 	padding-top: 5px; /* to vertically align with control label */
@@ -748,7 +790,7 @@ input.btn-link, button.btn-link {
 	margin-left: 1px; /* work around a bug where the left margin gets cut off on homepage */
 }
 
-#body h1 small, #body h2 small {
+#body h1 small, #body h2 sminsll {
 	font-size: 14px;
 }
 
@@ -760,6 +802,10 @@ input.btn-link, button.btn-link {
 /************* REPORTS **************/
 table.query-results {
 	margin-bottom: 2px; /*  so the X persons listed text can snuggle underneath */
+}
+p.report-summary {
+	font-weight: bold;
+	color: @grayLight;
 }
 
 
@@ -798,69 +844,84 @@ table.query-results {
 
 /************* VIEW PERSON ************/
 
-/*
-if there is a photo it will always go top right
-If there is enough width, person and family details go next to each other
- - with identical heights.
- - with half the width each
-Otherwise they go beneath each other
- - with 100% width
-
-*/
-
-.view-person img.person-photo {
-	float: right;
-	width: 200px;
-	margin: 0px;
-}
-
 .view-person h4 {
 	border-bottom: 1px solid #ddd;
 }
-
-.person-details-withphoto {
-	margin-right: 200px;
-	padding-right: 15px;
-	width: auto;
-	overflow: hidden;
+.person-details {
+	float: left;
+	margin-right: 15px;
 }
-
-.person-details-box {
-
-	width: auto;
-	min-width: 40%;
+img.person-photo {
+	width: 200px;
+	float: left;
+	border-radius: 5px;
+	border: 1px solid @jethroDarkest;
+}
+.details-box {
 	box-sizing: border-box;
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
-	float: left;
 	border: 1px solid @jethroDarkest;
 	padding: 15px;
-	margin: 0 15px 15px 0;
 	position: relative;
 	z-index: 50;
 	overflow: hidden;
 	background: @jethroLight;
 	border-radius: 5px;
+	margin-bottom: 15px;
 }
-.person-details-box table {
-	width: 100%;
+.view-person .details-box {
+	width: 500px;
 }
-.accordion .person-details-box {
-	padding: 8px;
+@media(min-width:1100px) {
+	.person-details {
+		width: 860px;
+		margin-right: 0px;
+	}
+	/* person details 380 + family details 380 + photo 200px wide */
+	.view-person .details-box {
+		width: 415px;
+		overflow: auto;
+		float: left;
+		margin-right: 15px;
+	}
+	.view-person img.person-photo {
+		float: right;
+	}
 }
 
-.person-details-box h3 {
+@media(max-width:600px) {
+	.person-details, .person-photo, .view-person .details-box {
+		float: none;
+		width: 100% !important;
+		margin-left: 0px;
+	}
+	.details-box, img.person-photo {
+		margin-bottom: 7px !important;
+	}
+}
+
+
+
+.details-box table {
+	width: 100%;
+}
+
+.details-box h3 {
 	margin: -15px -15px 15px -15px;
 	padding-left: 15px;
 	white-space: nowrap;
 	text-shadow: 0 1px 0 @jethroDarkText;
 	font-size: 14px;
 	font-weight: bold;
+	color: white  !important;
+	line-height: 30px;
 }
-.accordion .person-details-box {
+.accordion .details-box {
+	padding: 8px;
 	max-width: 100%;
 }
-.accordion .person-details-box h3 {
+.accordion .details-box h3 {
 	/* prevent the inside heading being bigger than the accordion heading */
 	font-size: 14px;
 	font-weight: bold;
@@ -868,25 +929,26 @@ Otherwise they go beneath each other
 	padding-bottom: 2px;
 	margin: -8px -8px 8px -8px;
 }
-.person-details-box h3 {
-	color: white  !important;
-	line-height: 30px;
-}
-.person-details-box .header-link {
+.details-box .header-link {
 	position: absolute;
 	right: 10px;
 }
-.person-details-box .header-link, .person-details-box .header-link a  {
+.details-box .header-link, .details-box .header-link a  {
 	line-height: 30px;
 	color: white  !important;
 	margin-top: -15px;
 }
-.accordion .person-details-box .header-link {
+.accordion .details-box .header-link {
 	margin-top: -8px;
 }
-.person-details-box .table {
+.details-box .table {
 	margin-bottom: 5px;
 }
+
+
+
+
+
 
 /* when editing (I think) */
 .person-photo-container {
@@ -901,36 +963,61 @@ Otherwise they go beneath each other
 
 
 /************** VIEW FAMILY ****************/
-#member-details-container {
-	padding: 0px;
+.details-box form {
+	margin: 0px;
 }
-#body #member-details-container .table {
-	margin-bottom: 2px;
-}
-#body #member-details-container form {
-	margin-bottom: 0px;
-}
-#family-photos-container img {
-	width: 50px;
-	display: inline;
-}
-#family-photos-container a {
+.family-details {
+	margin-right: 15px;
 	float: left;
-	margin: 0 1ex 1ex 0;
 }
-#family-members-container h4 {
-	margin-bottom: 0;
+.family-details .details-box {
+	width: 630px;
 }
-#family-members-container table tr:first-child td {
-	padding-top: 0px;
+.family-member {
+	box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	border: 1px solid @jethroDarkest;
+	background-color: @jethroLightest;
+	padding: 5px;
+	border-radius: 5px;
+	width: 47.1%;
+	margin: 0 15px 15px 0;
+	height: 72px;
+	float: left;
+	overflow: hidden;
+	color: @jethroDarkText;
 }
-#family-members-container table tr:last-child td {
-	padding-bottom: 0px;
+.family-member:hover {
+	background-color: @jethroGrayish;
 }
-#family-members-container table tr td:first-child {
-	padding-left: 0px;
+.family-member label {
+	float: right;
+	margin: -5px -5px 0 0;
+	padding: 5px 5px 0 0;
+	display: block;
+	height: 20px;
+	width: 20px;
 }
-
+.family-member * {
+	text-decoration: none !important;
+}
+.family-member img {
+	margin: -5px 5px -5px -5px;
+	width: 70px;
+	float: left;
+	border-top-left-radius: 5px;
+	border-bottom-left-radius: 5px;
+}
+@media (max-width: 600px) {
+	.family-details .details-box {
+		width: 100%;
+	}
+	.family-member {
+		width: 100%;
+		margin: 0 0 15px 0;
+	}
+}
 
 /**************** hOME PAGE *****************/
 
@@ -1114,6 +1201,10 @@ ul.nav-tabs {
 	text-decoration: none;
 	text-shadow: 0 1px 0 @jethroDarkText;
 }
+#body .accordion-inner {
+	padding: 7px;
+}
+
 
 /*********** ROSTERS ***********/
 #body table.roster td {
@@ -1174,7 +1265,7 @@ ul.nav-tabs {
 	margin-bottom: 0px;
 }
 table.roster select.unlisted-allocee, #body table.roster select option.unlisted-allocee {
-	color: orange;
+	color: #e68a00;
 }
 table.roster select.unlisted-allocee option {
 	color: @jethroDarkText;
@@ -1299,6 +1390,9 @@ table.service-details td table td input {
 
 
 /*********** NOTES **************/
+.notes-history-entry small {
+	display: inline;
+}
 .notes-history-entry.well {
 	padding: 20px 20px 10px 20px;
 	max-width: 40em;
@@ -1313,7 +1407,7 @@ table.service-details td table td input {
 }
 #body .notes-history-entry p {
 	margin: 0px;
-	font-size: 0.9em;
+	font-size: 14px; /* override bootstrap special blockquote size */
 	line-height: 1.3em;
 	margin-bottom: 4px;
 }
@@ -1329,12 +1423,17 @@ table.service-details td table td input {
 	line-height: 1.1em;
 }
 .notes-history-entry h4 {
-	margin-left: 50px;
-	border-bottom: 1px solid @jethroGrayish;
-	margin-top: 20px;
+	margin: -10px 0px 7px 0px;
+}
+.notes-history-entry h4.note-update {
+	margin-left: 45px;
+	color: @grayLight;
+	border-bottom: 1px solid @jethroDarkish;
+	margin-top: 15px;
 }
 .notes-history-entry .comments {
-	margin-left: 30px;
+	margin-left: 25px;
+	margin-top: 15px;
 }
 
 /********* ATTENDANCE AND COLOURED RADIO BUTTONS **********/
@@ -1410,13 +1509,15 @@ table.service-details td table td input {
 	table.attendance-stats td {
 		text-align: right;
 		width: 6ex;
+		color: @jethroDarkText !important;
 	}
 
-	.attendance-stats th, .attendance-stats td {
+	#body .attendance-stats th, #body .attendance-stats td {
 		white-space: nowrap;
+		color: @jethroDarkText !important;
 	}
 
-	.attendance-stats .headcount *{
+	.attendance-stats .headcount * {
 		background: @grayMid !important;
 	}
 
@@ -1909,10 +2010,43 @@ td.run-sheet-comments * {
 @media (max-width: 480px) {
 	#service-personnel div.column {
 		width: 100%;
-		margin: 0;
+		margin: .5em 0 0 0;
 	}
 }
 
+
+/*************** SMS MESSAGING ************************/
+button.sms-success, #body tr.sms-success .btn-sms, #body tr.sms-success .btn-sms:hover {
+	background-image: linear-gradient(linear, 0 0, 0 100%, from(#beefae), to(#29b30e)) !important;
+	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#beefae), to(#29b30e)) !important;
+	background-position: 0 0 !important;
+}
+#body tr.sms-failure .btn-sms, #body tr.sms-failure .btn-sms:hover {
+	background-image: linear-gradient(linear, 0 0, 0 100%, from(#ff9c9c), to(#d22c2c)) !important;
+	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#ff9c9c), to(#d22c2c)) !important;
+	background-position: 0 0 !important;
+}
+
+div.sms_editor {
+  border: 1px solid @grayMid;
+  height: 8em;
+  width: 100%;
+  margin: .5em 0 .5em 0;
+  padding: .25em;
+  overflow-y: auto;
+  border-radius: @baseBorderRadius;
+}
+
+div#sms_message:focus, div#bulk_sms_message:focus {
+  outline: none;
+}
+div#send-sms-modal div.results {
+  display: none;
+}
+
+div#send-sms-modal div.results {
+  text-align: left;
+}
 
 
 /*************** CUSTOM FIELDS EDITOR *****************/
@@ -1973,7 +2107,7 @@ td.run-sheet-comments * {
 	a[href]:after {
 		content: "";
 	}
-	.no-print, .action-cell, .user-detail, .selector {
+	.no-print, .action-cell, .user-detail, .selector, .bulk-actions {
 		display: none;
 	}
 	#jethro-nav, #jethro-nav-toprow, #jethro-nav-toprow h1, #jethro-nav-toprow .brand {

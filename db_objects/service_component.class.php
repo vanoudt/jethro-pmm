@@ -38,6 +38,7 @@ class Service_Component extends db_object
 									'type'		=> 'text',
 									'width'		=> 80,
 									'initial_cap'	=> TRUE,
+									'placeholder' => '(Optional)',
 								   ),
 			'length_mins'		=> Array(
 									'type'		=> 'int',
@@ -106,7 +107,7 @@ class Service_Component extends db_object
 		return $fields;
 	}
 
-	function search($keyword, $tagid, $congregationid, $categoryid=NULL)
+	public static function search($keyword, $tagid, $congregationid, $categoryid=NULL)
 	{
 		$conds = Array();
 		if (!empty($keyword)) {
@@ -184,10 +185,9 @@ class Service_Component extends db_object
 		$SQL = 'SELECT ccli_number, id
 				FROM service_component';
 		$res = $GLOBALS['db']->queryAll($SQL, null, null, true, false);
-		check_db_result($res);
 		return $res;
 	}
-	
+
 	protected function _printSummaryRows()
 	{
 		$oldFields = $this->fields;
@@ -206,7 +206,7 @@ class Service_Component extends db_object
 		unset($this->fields['tags']);
 	}
 
-	public function printFieldValue($name)
+	public function printFieldValue($name, $value=NULL)
 	{
 		switch ($name) {
 			case 'congregationids':
@@ -242,7 +242,7 @@ class Service_Component extends db_object
 				return parent::printFieldValue($name);
 		}
 	}
-	
+
 
 
 	function toString()
@@ -343,6 +343,10 @@ class Service_Component extends db_object
 
 	public function processForm($prefix='', $fields=NULL) {
 		$res = parent::processForm($prefix, $fields);
+		$credits = $this->getValue('credits');
+		if (FALSE !== strpos($credits, '(c)')) {
+			$this->setValue('credits', str_replace('(c)', '©', $credits));
+		}
 		$this->values['congregationids'] = array_get($_REQUEST, $prefix.'congregationids', Array());
 		$this->_tmp['tagids'] = Array();
 		if (!empty($_REQUEST['tags'])) {
@@ -405,7 +409,7 @@ class Service_Component extends db_object
 	private function _saveCongregations($deleteOld=FALSE)
 	{
 		if ($deleteOld) {
-			check_db_result($GLOBALS['db']->exec('DELETE FROM congregation_service_component WHERE componentid = '.(int)$this->id));
+			$GLOBALS['db']->exec('DELETE FROM congregation_service_component WHERE componentid = '.(int)$this->id);
 		}
 		$sets = Array();
 		foreach (array_unique(array_get($this->values, 'congregationids', Array())) as $congid) {
@@ -417,14 +421,13 @@ class Service_Component extends db_object
 					VALUES
 					'.implode(",\n", $sets);
 			$x = $GLOBALS['db']->exec($SQL);
-			check_db_result($x);
 		}
 	}
 
 	private function _saveTags($deleteOld=FALSE)
 	{
 		if ($deleteOld) {
-			check_db_result($GLOBALS['db']->exec('DELETE FROM service_component_tagging WHERE componentid = '.(int)$this->id));
+			$GLOBALS['db']->exec('DELETE FROM service_component_tagging WHERE componentid = '.(int)$this->id);
 		}
 		$sets = Array();
 		foreach (array_unique(array_get($this->_tmp, 'tagids', Array())) as $tagid) {
@@ -436,7 +439,6 @@ class Service_Component extends db_object
 					VALUES
 					'.implode(",\n", $sets);
 			$x = $GLOBALS['db']->exec($SQL);
-			check_db_result($x);
 		}
 
 	}
