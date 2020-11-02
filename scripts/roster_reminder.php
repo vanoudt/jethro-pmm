@@ -59,7 +59,7 @@ $ini = parse_ini_file($_SERVER['argv'][1]);
 $messagetype=$ini['MESSAGE_TYPE'];
 $sendemail=($messagetype==='email') || ($messagetype==='both');
 $sendsms=($messagetype==='sms') || ($messagetype==='both');
-$save_sms_communication=$ini['SAVE_SMS_COMMUNICATION'];
+$storesms=$ini['LOG_COMMUNICATION']
 $roster_coordinator=$ini['ROSTER_COORDINATOR'];
 $roster_coordinator_id=$ini['ROSTER_COORDINATOR_ID'];
 $roster_id=$ini['ROSTER_ID'];
