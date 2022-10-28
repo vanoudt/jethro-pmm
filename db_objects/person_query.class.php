@@ -21,7 +21,7 @@ class Person_Query extends DB_Object
 
 	function __construct($id=0)
 	{
-		if (!empty($GLOBALS['system'])) {
+		if (empty($GLOBALS['JETHRO_INSTALLING']) && !empty($GLOBALS['system'])) {
 			$GLOBALS['system']->includeDBClass('person');
 			$GLOBALS['system']->includeDBClass('family');
  			$this->_dummy_person = new Person();
@@ -541,8 +541,11 @@ class Person_Query extends DB_Object
 						$options['photo'] = 'Photo';
 					}
 					$options['--D'] = '-----';
-					$options['view_link'] = 'A link to view their person record';
-					$options['edit_link'] = 'A link to edit their person record';
+					$options['view_link'] = 'A link to view person details';
+					$options['edit_link'] = 'A link to edit the person';
+					if ($GLOBALS['user_system']->havePerm(PERM_EDITNOTE)) {
+						$options['note_link'] = 'A link to add a note';
+					}
 					$options['checkbox'] = 'A checkbox for bulk actions';
 					print_widget('show_fields[]', Array('options' => $options, 'type' => 'select', 'disabled_prefix' => '--'), $chosen_field);
 					?>
@@ -706,43 +709,42 @@ class Person_Query extends DB_Object
 
 	function processForm($prefix='', $fields=NULL)
 	{
-		if ($GLOBALS['user_system']->havePerm('PERM_MANAGEREPORTS')) {
-			switch ($_POST['save_option']) {
-				case 'new':
-					$this->populate(0, Array());
-					$this->processFieldInterface('name');
-					if ($GLOBALS['user_system']->havePerm(PERM_SYSADMIN)) {
-						$this->processFieldInterface('mailchimp_list_id');
+		switch ($_POST['save_option']) {
+			case 'new':
+				$this->populate(0, Array());
+				$this->processFieldInterface('name');
+				if ($GLOBALS['user_system']->havePerm(PERM_SYSADMIN)) {
+					$this->processFieldInterface('mailchimp_list_id');
+				}
+				$this->setValue('owner', $GLOBALS['user_system']->getCurrentUser('id'));
+				if ($GLOBALS['user_system']->havePerm(PERM_MANAGEREPORTS)) {
+					// Only those with mange-reports permission can save shared reports.
+					if (empty($_POST['is_private'])) {
+						$this->setValue('owner', NULL);
 					}
-					$this->setValue('owner', $GLOBALS['user_system']->getCurrentUser('id'));
-					if ($GLOBALS['user_system']->havePerm(PERM_MANAGEREPORTS)) {
-						// Only those with mange-reports permission can save shared reports.
-						if (empty($_POST['is_private'])) {
-							$this->setValue('owner', NULL);
-						}
-					}
-					$this->processFieldInterface('show_on_homepage');
-					break;
-				case 'replace':
-					$this->processFieldInterface('name');
-					if ($GLOBALS['user_system']->havePerm(PERM_SYSADMIN)) {
-						$this->processFieldInterface('mailchimp_list_id');
-					}
-					$this->setValue('owner', $GLOBALS['user_system']->getCurrentUser('id'));
-					if ($GLOBALS['user_system']->havePerm(PERM_MANAGEREPORTS)) {
-						// Only those with mange-reports permission can save shared reports.
-						if (empty($_POST['is_private'])) {
-							$this->setValue('owner', NULL);
-						}
-					}
-					$this->processFieldInterface('show_on_homepage');
-					break;
-				case 'temp':
-					$this->id = 'TEMP';
+				}
+				$this->processFieldInterface('show_on_homepage');
 				break;
-			}
-		} else {
-			$this->id = 'TEMP';
+			case 'replace':
+				if (($this->getValue('owner') === NULL) && !$GLOBALS['user_system']->havePerm(PERM_MANAGEREPORTS)) {
+					trigger_error("You do not have permission to overwrite saved reports", E_USER_ERROR); exit;
+				}
+				$this->processFieldInterface('name');
+				if ($GLOBALS['user_system']->havePerm(PERM_SYSADMIN)) {
+					$this->processFieldInterface('mailchimp_list_id');
+				}
+				$this->setValue('owner', $GLOBALS['user_system']->getCurrentUser('id'));
+				if ($GLOBALS['user_system']->havePerm(PERM_MANAGEREPORTS)) {
+					// Only those with mange-reports permission can save shared reports.
+					if (empty($_POST['is_private'])) {
+						$this->setValue('owner', NULL);
+					}
+				}
+				$this->processFieldInterface('show_on_homepage');
+				break;
+			case 'temp':
+				$this->id = 'TEMP';
+			break;
 		}
 
 
@@ -974,7 +976,8 @@ class Person_Query extends DB_Object
 				$values = (array)$values;
 				switch (count($values)) {
 					case 0:
-						$query['where'][] = $field.' = 0';
+						$query['where'][] = '(('.$field.' = 0) OR ('.$field.' IS NULL))';
+						break;
 					case 1:
 						$query['where'][] = $field.' = '.$db->quote(reset($values));
 						break;
@@ -1243,6 +1246,7 @@ class Person_Query extends DB_Object
 						break;
 					case 'view_link':
 					case 'edit_link':
+					case 'note_link':
 					case 'checkbox':
 					case 'photo':
 						$query['select'][] = 'p.id as '.$field;
@@ -1252,8 +1256,8 @@ class Person_Query extends DB_Object
 										JOIN (
 											SELECT familyid, IF (
 												GROUP_CONCAT(DISTINCT last_name) = ff.family_name,
-												GROUP_CONCAT(first_name ORDER BY ab.rank, gender DESC SEPARATOR ", "),
-												GROUP_CONCAT(CONCAT(first_name, " ", last_name) ORDER BY ab.rank, gender DESC SEPARATOR ", ")
+												GROUP_CONCAT(first_name ORDER BY ab.`rank`, gender DESC SEPARATOR ", "),
+												GROUP_CONCAT(CONCAT(first_name, " ", last_name) ORDER BY ab.`rank`, gender DESC SEPARATOR ", ")
 											  ) AS `names`
 											FROM person pp
 											JOIN age_bracket ab ON ab.id = pp.age_bracketid
@@ -1277,8 +1281,8 @@ class Person_Query extends DB_Object
 						$r2 = $GLOBALS['db']->query('INSERT INTO _family_adults'.$this->id.' (familyid, names)
 											SELECT familyid, IF (
 												GROUP_CONCAT(DISTINCT last_name) = ff.family_name,
-												GROUP_CONCAT(first_name ORDER BY ab.rank, gender DESC SEPARATOR ", "),
-												GROUP_CONCAT(CONCAT(first_name, " ", last_name) ORDER BY ab.rank, gender DESC SEPARATOR ", ")
+												GROUP_CONCAT(first_name ORDER BY ab.`rank`, gender DESC SEPARATOR ", "),
+												GROUP_CONCAT(CONCAT(first_name, " ", last_name) ORDER BY ab.`rank`, gender DESC SEPARATOR ", ")
 											  )
 											FROM person pp
 											JOIN age_bracket ab ON pp.age_bracketid = ab.id
@@ -1305,12 +1309,13 @@ class Person_Query extends DB_Object
 												FROM attendance_record ar
 												WHERE  groupid = '.(int)$groupid.'
 												AND personid = p.id
-												AND date > (SELECT COALESCE(MAX(date), "2000-01-01") FROM attendance_record ar2 WHERE ar2.personid = ar.personid AND present = 1)) AS `Running Absences`';
+												AND date > (SELECT COALESCE(MAX(date), "2000-01-01") FROM attendance_record ar2 WHERE ar2.personid = ar.personid AND present = 1 AND groupid='.(int)$groupid.')) AS `Running Absences`';
 						break;
 					case 'actionnotes.subjects':
-						$query['select'][] = '(SELECT GROUP_CONCAT(subject SEPARATOR ", ")
+						$query['select'][] = '(SELECT GROUP_CONCAT(CONCAT(subject, " [", substr(asn.first_name, 1, 1), substr(asn.last_name, 1, 1),"]") SEPARATOR ", ")
 												FROM abstract_note an
 												JOIN person_note pn ON an.id = pn.id
+												LEFT JOIN person asn on asn.id = an.assignee
 												WHERE pn.personid = p.id
 												AND an.status = "pending"
 												AND an.action_date <= NOW()) AS `Notes`';
@@ -1377,7 +1382,7 @@ class Person_Query extends DB_Object
 					LEFT JOIN congregation cord ON p.congregationid = cord.id ';
 				$query['order_by'] = 'IF(cord.id IS NULL, 1, 0), IF(LENGTH(cord.meeting_time)>0, 0, 1), cord.meeting_time, cord.name';
 			} else if ($params['sort_by'] == 'p.age_bracketid') {
-				$query['order_by'] = 'absort.rank';
+				$query['order_by'] = 'absort.`rank`';
 			} else {
 				$query['order_by'] = $this->_quoteAliasAndColumn($params['sort_by']);
 			}
@@ -1389,7 +1394,7 @@ class Person_Query extends DB_Object
 			if ($params['sort_by'] == 'f.family_name') {
 				// Stop members of identically-named families from being intermingled
 				// and make sure kids follow adults even if their last names are earlier
-				$query['order_by'] .= ', f.id,  absort.rank';
+				$query['order_by'] .= ', f.id,  absort.`rank`';
 			}
 
 			/*
@@ -1400,7 +1405,7 @@ class Person_Query extends DB_Object
 			$rewrites = Array(
 						'`attendance_percent`' => '`Attendance` ASC',
 						'`attendance_numabsences`' => '`Running Absences` DESC',
-						'`membershipstatus`' => 'pgms.rank',
+						'`membershipstatus`' => 'pgms.`rank`',
 			);
 			$query['order_by'] = str_replace(array_keys($rewrites), array_values($rewrites), $query['order_by']);
 			if (!strlen(trim($query['order_by'], '`'))) $query['order_by'] = 1;
@@ -1416,7 +1421,7 @@ class Person_Query extends DB_Object
 				';
 		}
 		$sql .= "\nGROUP BY ".implode(', ', $query['group_by']);
-		$sql .= "\nORDER BY ".$query['order_by'].', p.last_name, p.familyid, absort.rank, IF (absort.is_adult, p.gender, 1) DESC, p.first_name';
+		$sql .= "\nORDER BY ".$query['order_by'].', p.last_name, p.familyid, absort.`rank`, IF (absort.is_adult, p.gender, 1) DESC, p.first_name';
 
 		return $sql;
 	}
@@ -1528,7 +1533,7 @@ class Person_Query extends DB_Object
 			}
 
 			foreach ($headers as $heading) {
-				if (in_array($heading, Array('view_link', 'edit_link', 'checkbox'))) continue;
+				if (in_array($heading, Array('view_link', 'edit_link', 'note_link', 'checkbox'))) continue;
 				switch($heading) {
 					case 'person_groups':
 						$hr[] = 'Groups';
@@ -1555,7 +1560,7 @@ class Person_Query extends DB_Object
 		foreach ($x as $row) {
 			$r = Array();
 			foreach ($row as $label => $val) {
-				if (in_array($label, Array('view_link', 'edit_link', 'checkbox'))) continue;
+				if (in_array($heading, Array('view_link', 'edit_link', 'note_link', 'checkbox'))) continue;
 				if (isset($this->_field_details[$label])) {
 					$var = $label[0] == 'p' ? '_dummy_person' : '_dummy_family';
 					$fieldname = substr($label, 2);
@@ -1587,12 +1592,13 @@ class Person_Query extends DB_Object
 			<?php
 			return;
 		}
+		$headers = array_keys(reset($x));
 		?>
 		<table class="table table-striped table-condensed table-hover table-min-width clickable-rows query-results">
 			<thead>
 				<tr>
 				<?php
-				foreach (array_keys(reset($x)) as $heading) {
+				foreach ($headers as $heading) {
 					?>
 					<th<?php echo $this->_getColClasses($heading); ?>>
 						<?php
@@ -1605,6 +1611,7 @@ class Person_Query extends DB_Object
 								break;
 							case 'edit_link':
 							case 'view_link':
+							case 'note_link':
 								break;
 							case 'checkbox':
 								echo '<input type="checkbox" class="select-all" title="Select all" />';
@@ -1627,7 +1634,6 @@ class Person_Query extends DB_Object
 			</thead>
 			<tbody>
 			<?php
-
 			foreach ($x as $personid => $row) {
 				?>
 				<tr data-personid="<?php echo $personid; ?>">
@@ -1639,13 +1645,22 @@ class Person_Query extends DB_Object
 						switch ($label) {
 							case 'edit_link':
 								?>
-								<a class="med-popup no-print" href="?view=_edit_person&personid=<?php echo $row[$label]; ?>"><i class="icon-wrench"></i>Edit</a>
+								<a class="med-popup no-print" href="?view=_edit_person&personid=<?php echo $row[$label]; ?>&then=refresh_opener"><i class="icon-wrench"></i>Edit</a>
 								<?php
 								break;
 							case 'view_link':
 								?>
 								<a class="med-popup no-print" href="?view=persons&personid=<?php echo $row[$label]; ?>"><i class="icon-user"></i>View</a>
 								<?php
+								break;
+							case 'note_link':
+								// if notes are shown on this report, we want to refresh after adding a new one
+								$then = in_array('Notes', $headers) ? '&then=refresh_opener' : '';
+								if ($GLOBALS['user_system']->havePerm(PERM_EDITNOTE)) {
+									?>
+									<a class="med-popup no-print" href="?view=_add_note_to_person&personid=<?php echo $row[$label].$then ?>"><i class="icon-pencil"></i>Add&nbsp;Note</a>
+									<?php
+								}
 								break;
 							case 'checkbox':
 								?>
@@ -1665,6 +1680,11 @@ class Person_Query extends DB_Object
 							case 'p.id':
 							case 'f.id':
 								echo $val;
+								break;
+							case 'Notes':
+								$val = ents($val);
+								$val = preg_replace('/(\[[A-Z][A-Z]\])/', "<span class=\"soft\">$1</span>", $val);
+								echo nl2br($val);
 								break;
 							default:
 								if (isset($this->_field_details[$label])) {
@@ -1689,8 +1709,19 @@ class Person_Query extends DB_Object
 			}
 			?>
 			</tbody>
+			<tfoot>
+				<tr>
+					<td class="report-summary no-tsv" colspan="<?php echo count($headers); ?>">
+						<span class="pull-right no-print">
+							Copy: 
+							<span class="clickable" title="plain table to paste elsewhere" data-action="copy-table">Table</span> 
+							<span class="clickable" title="tab-separated for spreadsheet" data-action="copy-tsv">TSV</span>
+						</span>
+						<i><?php echo count($x); ?> persons listed</i>
+					</td>
+				</tr>
+			</tfoot>
 		</table>
-		<p class="report-summary"><?php echo count($x); ?> persons listed</p>
 		<?php
 	}
 
@@ -1745,8 +1776,9 @@ class Person_Query extends DB_Object
 			$user = $GLOBALS['user_system']->getCurrentUser('id');
 			$owner = $this->getValue('owner');
 			if (!empty($user) && !empty($owner) && ($owner != $user)) {
-				trigger_error("Cannot load report that belongs to another user!", E_USER_ERROR);
-				exit;
+				// Somebody trying to open a report that belongs to another
+				$this->reset();
+				return FALSE;
 			}
 			return $res;
 		}
@@ -1755,7 +1787,7 @@ class Person_Query extends DB_Object
 	function _getColClasses($heading)
 	{
 		$class_list = Array();
-		if (in_array($heading, Array('edit_link', 'view_link', 'checkbox'))) {
+		if (in_array($heading, Array('edit_link', 'view_link', 'note_link', 'checkbox'))) {
 			$class_list[] = 'no-print narrow';
 		}
 		if ($heading == 'checkbox') {
