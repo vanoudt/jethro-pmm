@@ -114,6 +114,7 @@ class Person_Status extends db_object
 		return array_get($set, $label);		
 	}
 
+
 	public function getInstancesQueryComps($params, $logic, $order)
 	{
 		if (empty($order)) $order = 'rank';
@@ -121,3 +122,4 @@ class Person_Status extends db_object
 	}
 
 }
+
