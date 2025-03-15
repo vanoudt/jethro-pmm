@@ -50,7 +50,7 @@ class Person_Group extends db_object
 									'type' => 'select',
 									'options' => Array('No', 'Yes'),
 									'default' => 0,
-									'note' => 'Should members of this group be able to see each others\'s details in <a href="'.BASE_URL.'members">member portal</a>?',
+									'note' => 'Should members of this group be able to see each other\'s details in <a href="'.BASE_URL.'members">member portal</a>?',
 									'label' => 'Share member details?',
 								),
 		);
@@ -179,7 +179,7 @@ class Person_Group extends db_object
 
 	function addMember($personid, $membership_status=NULL, $overwrite_existing=FALSE)
 	{
-		if (!$GLOBALS['user_system']->havePerm(PERM_EDITPERSON)) {
+		if (!$GLOBALS['user_system']->havePerm(PERM_EDITGROUP)) {
 			trigger_error("You do not have permission to add group members");
 			return FALSE;
 		}
@@ -211,7 +211,7 @@ class Person_Group extends db_object
 
 	function removeMember($personid)
 	{
-		if (!$GLOBALS['user_system']->havePerm(PERM_EDITPERSON)) {
+		if (!$GLOBALS['user_system']->havePerm(PERM_EDITGROUP)) {
 			trigger_error("You do not have permission to remove group members");
 			return FALSE;
 		}
@@ -229,7 +229,7 @@ class Person_Group extends db_object
 
 	function removeMembers($personids)
 	{
-		if (!$GLOBALS['user_system']->havePerm(PERM_EDITPERSON)) {
+		if (!$GLOBALS['user_system']->havePerm(PERM_EDITGROUP)) {
 			trigger_error("You do not have permission to remove group members");
 			return FALSE;
 		}

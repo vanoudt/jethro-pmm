@@ -532,7 +532,7 @@ class roster_view extends db_object
 		$showBlanks = ($this->getValue('show_on_run_sheet') == 1);
 		$asns = $this->getAssignments($service->getValue('date'), $service->getValue('date'));
 		$asns = empty($asns) ? Array() : reset($asns);
-		
+
 		$ourMembers = Array();
 		foreach ($this->_members as $member) {
 			if (empty($member['role_id']) && !$includeServiceFields) continue;
@@ -615,12 +615,21 @@ class roster_view extends db_object
 	}
 
 
+	/**
+	 *
+	 * @param string $start_date
+	 * @param string $end_date
+	 * @param boolean $editing Whether to show the editable version
+	 * @param boolean $public Whether we are showing on the public site
+	 * @param boolean $printable Whether to show the printable version
+	 * @return int	Count of the number of rows(dates) displayed.
+	 */
 	function printView($start_date=NULL, $end_date=NULL, $editing=FALSE, $public=FALSE, $printable=FALSE)
 	{
 		if (empty($this->_members)) return;
 		$GLOBALS['system']->includeDBClass('service');
 		$dummy_service = new Service();
-	
+
 		if (is_null($start_date)) $start_date = date('Y-m-d');
 		$service_params = Array('congregationid' => $this->getCongregations(), '>date' => date('Y-m-d', strtotime($start_date.' -1 day')));
 		if (!is_null($end_date)) $service_params['<date'] = date('Y-m-d', strtotime($end_date.' +1 day'));
@@ -637,7 +646,7 @@ class roster_view extends db_object
 																),
 																'AND');
 		}
-		
+
 		$to_print = Array();
 		foreach ($services as $id => $service_details) {
 			$service_details['id'] = $id;
@@ -680,13 +689,15 @@ class roster_view extends db_object
 		if ($editing) {
 			$show_lock_fail_msg = false;
 			$show_group_denied_msg = false;
+			$lockholders = Array(); // Array mapping personid of lock holders to info about them and their lock, for later display. Typically there will be N identical locks for N roles edited. We only store the first, assuming it is representative.
 			foreach ($this->_members as $id => &$details) {
 				if (!empty($details['role_id'])) {
 					$role = $GLOBALS['system']->getDBObject('roster_role', $details['role_id']);
-
 					if (!($role->canAcquireLock('assignments') && $role->acquireLock('assignments'))) {
 						$details['readonly'] = true;
 						$show_lock_fail_msg = true;
+						$lockHolder = $role->getLockHolder('assignments');
+						$lockholders[$lockHolder['userid']] ??= $lockHolder;
 					}
 					if (!$role->canEditAssignments()) {
 						$details['readonly'] = true;
@@ -695,7 +706,7 @@ class roster_view extends db_object
 				}
 			}
 			if ($show_lock_fail_msg) {
-				print_message("Some of the roles in this roster are currently being edited by another user.  To edit assignments for these roles, wait until the other user finishes then try again.", 'failure');
+				$this->printLockHoldMessage($lockholders);
 			}
 			if ($show_group_denied_msg) {
 				print_message("There are some roles in this roster which you are not able to edit because they refer to a volunteer group you do not have access to.");
@@ -747,7 +758,7 @@ class roster_view extends db_object
 				}
 				$class_clause = ($date == $this_sunday) ? 'class="roster-next"' : '';
 				?>
-				
+
 				<tr <?php echo $class_clause; ?>>
 					<th class="roster-date nowrap">
 						<?php
@@ -840,6 +851,7 @@ class roster_view extends db_object
 							echo implode("<br />", $names);
 						}
 					} else {
+						echo '<div class="service-field-'.$mdetail['service_field'].'">';
 						if (!empty($ddetail['service'][$mdetail['congregationid']])) {
 							if ($public && (!defined('SHOW_SERVICE_NOTES_PUBLICLY') || !SHOW_SERVICE_NOTES_PUBLICLY)) {
 								// no notes in public view
@@ -848,6 +860,7 @@ class roster_view extends db_object
 							$dummy_service->populate($ddetail['service'][$mdetail['congregationid']]['id'], $ddetail['service'][$mdetail['congregationid']]);
 							$dummy_service->printFieldvalue($mdetail['service_field'], NULL, $printable);
 						}
+						echo '</div>';
 					}
 					?>
 					</td>
@@ -869,6 +882,8 @@ class roster_view extends db_object
 			</form>
 			<?php
 		}
+
+		return count(array_keys($to_print));
 	}
 
 	function _printTableHeader($editing, $public)
@@ -1013,10 +1028,27 @@ class roster_view extends db_object
 					VALUES '.implode(",\n", $to_add);
 			$res = $GLOBALS['db']->query($sql);
 		}
-		foreach ($roles as $i => $roleid) {
-			$role = $GLOBALS['system']->getDBObject('roster_role', $roleid);
-			$role->releaseLock('assignments');
-		}
+
+		// Tidy up ranks - for example if somebody already had rank 4 but they're
+		// now the only assignee, update their rank to 0.
+		// Just to be safe, we'll just do this for the roles in this roster view.
+		$clean_role_ids = Array();
+		foreach ($roles as $roleid) $clean_role_ids[] = (int)$roleid; // paranoia pays.
+		$SQL = 'UPDATE roster_role_assignment rra
+				INNER JOIN ( SELECT *,
+								(row_number() OVER (PARTITION BY assignment_date, roster_role_id
+													ORDER BY `rank` ASC) - 1) AS correctrank
+							   FROM roster_role_assignment
+							) a
+							ON rra.assignment_date = a.assignment_date
+								AND rra.roster_role_id = a.roster_role_id
+								AND rra.personid = a.personid
+				SET rra.`rank` = a.correctrank
+				WHERE rra.`rank` <> a.correctrank
+				AND rra.roster_role_id IN ('.implode(',', $clean_role_ids).')';
+		$res = $GLOBALS['db']->query($SQL);
+
+		$this->releaseLocks();
 		unset($roleid);
 
 		if (!empty($_POST['new_volunteers'])) {
@@ -1072,6 +1104,7 @@ class roster_view extends db_object
 
 	public function printAnalysis($start, $end)
 	{
+		if (!$this->getRoleIDs()) return;
 		$db = JethroDB::get();
 		$SQL = '
 				SELECT personid, first_name, last_name,
@@ -1089,6 +1122,10 @@ class roster_view extends db_object
 				ORDER BY assignment_count DESC
 				';
 		$res = $db->queryAll($SQL);
+		if (empty($res)) {
+			echo '<i>('._('None').')</i>';
+			return;
+		}
 
 		?>
 		<table class="table roster-analysis table-bordered table-condensed table-auto-width table-compact">
@@ -1118,5 +1155,36 @@ class roster_view extends db_object
 		<?php
 
 	}
+
+	public function releaseLocks()
+	{
+		$roles = $this->getRoleIds();
+		foreach ($roles as $i => $roleid) {
+			$role = $GLOBALS['system']->getDBObject('roster_role', $roleid);
+			$role->releaseLock('assignments');
+		}
+	}
+
+	/**
+	 * Print an error explaining which other user has the roster edit lock, and for how long.
+	 * @param array{userid: int, array{userid: int, expires: string, first_name: ?string, last_name: ?string}} $lockholders Array mapping lock holder userids to info about them and their lock.
+	 *
+	 * @return void
+	 * @throws DateMalformedStringException
+	 */
+	public function printLockHoldMessage(array $lockholders): void
+	{
+		$lockHoldersStr =
+			implode(' and ', array_map(
+				fn($lockowner, $userid) => $lockowner['first_name'] !== null ? "{$lockowner['first_name']} {$lockowner['last_name']} ({$userid})" : "user $userid",
+				$lockholders,
+				array_keys($lockholders)
+			));
+        // If more than one person holds locks of differing expiries, the longest expiry is most relevant.
+		$maxLockExpiry = array_reduce($lockholders, function ($carry, $lockholder) {
+			return $lockholder['expires'] > $carry ? $lockholder['expires'] : $carry;
+		}, PHP_INT_MIN);
+		$lockExpiresStr = (new DateTime($maxLockExpiry))->format('H:i');
+		print_message("Some of the roles in this roster are currently being edited by $lockHoldersStr.  To edit assignments for these roles, wait until the other user finishes or their lock expires (at $lockExpiresStr), then try again.", 'failure');
+	}
 }
-?>

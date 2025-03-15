@@ -63,10 +63,10 @@ class Person_Status extends db_object
 		$res[] = '
 			INSERT INTO person_status (`rank`, label, is_default, is_archived, require_congregation)
 					VALUES
-					(0, "Core", 0, 0, 1),
+					(0, "Core", 1, 0, 1),
 					(1, "Crowd", 0, 0, 1),
-					(2, "Contact", 1, 0, 0),
-					(3, "Archived, 0, 1, 0)';
+					(2, "Contact", 0, 0, 0),
+					(3, "Archived", 0, 1, 0)';
 		return $res;
 	}
 
@@ -85,7 +85,7 @@ class Person_Status extends db_object
 		$params = Array('active' => 1);
 		if (!$include_archived) $params['is_archived'] = 0;
 		// The system controller caches this result
-		return $GLOBALS['system']->getDBObjectData('person_status', $params);
+		return $GLOBALS['system']->getDBObjectData('person_status', $params, 'AND');
 	}
 
 	static function getArchivedIDs()
@@ -96,6 +96,23 @@ class Person_Status extends db_object
 
 	}
 
+	static function getDefault()
+	{
+		$r = $GLOBALS['system']->getDBObjectData('person_status', Array('is_default' => 1));
+		return key($r);
+	}
+
+	static function getByLabel($label)
+	{
+		static $set;
+		if (empty($set)) {
+			$x = $GLOBALS['system']->getDBObjectData('person_status', Array());
+			foreach ($x as $id => $detail) {
+				$set[$detail['label']] = $id;
+			}
+		}
+		return array_get($set, $label);		
+	}
 
 	public function getInstancesQueryComps($params, $logic, $order)
 	{

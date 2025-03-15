@@ -5,6 +5,7 @@ class View__Mixed_Search extends View
 	private $_person_data = Array();
 	private $_group_data = Array();
 	private $_report_data = Array();
+	private $_search_params = Array();
 
 	function processView()
 	{
@@ -212,23 +213,22 @@ class View__Mixed_Search extends View
 				<input type="text" 
 					   name="search" 
 					   value="<?php echo ents(array_get($_GET, 'search')); ?>" 
-					   placeholder=<?php echo _('"Name, phone or email"');?> 
+					   placeholder="<?php echo _("Name, phone or email");?>"
 					   <?php if (array_get($_GET, 'search')) echo 'autoselect="autoselect"'; ?>
 				/>
 				<button type="submit" class="btn"><i class="icon-search"></i></button>
 			</span>
 			<div class="homepage-search-options soft">
-				<div class="pull-left">Search for:</div>
-				<div class="pull-left">
-				<label class="checkbox"><input type="radio" name="searchtype" <?php echo array_get($checked, '*'); ?> value="*" /> everything</label>
-				<label class="checkbox"><input type="radio" name="searchtype" <?php echo array_get($checked, 'f'); ?> value="f" /> families</label>
-				<label class="checkbox"><input type="radio" name="searchtype" <?php echo array_get($checked, 'p'); ?> value="p" /> persons</label>
-				</div>
-				<div class="pull-left">
-				<br />
-				<label class="checkbox"><input type="radio" name="searchtype" <?php echo array_get($checked, 'g'); ?> value="g" /> groups</label>
-				<label class="checkbox"><input type="radio" name="searchtype" <?php echo array_get($checked, 'r'); ?> value="r" /> reports</label>
-				</div>
+				<details>
+					<summary>Search for...</summary>
+					<div>
+						<label class="checkbox"><input type="radio" name="searchtype" <?php echo array_get($checked, '*'); ?> value="*" /> everything</label>
+						<label class="checkbox"><input type="radio" name="searchtype" <?php echo array_get($checked, 'f'); ?> value="f" /> families</label>
+						<label class="checkbox"><input type="radio" name="searchtype" <?php echo array_get($checked, 'p'); ?> value="p" /> persons</label>
+						<label class="checkbox"><input type="radio" name="searchtype" <?php echo array_get($checked, 'g'); ?> value="g" /> groups</label>
+						<label class="checkbox"><input type="radio" name="searchtype" <?php echo array_get($checked, 'r'); ?> value="r" /> reports</label>
+					</div>
+				</details>
 			</div>
 		</form>
 		<?php

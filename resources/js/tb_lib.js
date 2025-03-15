@@ -526,8 +526,9 @@ TBLib.medLinkPopupWindow = null;
 TBLib.handleMedPopupLinkClick = function(elt)
 {
 	if (!elt.href) elt = this;
-	var myWidth = Math.max(500, (screen.width/2));
-	TBLib.medLinkPopupWindow = window.open(elt.href, elt.target ? elt.target : 'medpopup', 'height=480,width='+myWidth+',resizable=yes,scrollbars=yes');
+	var myWidth = Math.max(500, Math.min(700, (window.innerWidth/2)));
+	var myHeight = Math.max(500, (window.innerHeight * 0.8));
+	TBLib.medLinkPopupWindow = window.open(elt.href, elt.target ? elt.target : 'medpopup', 'height='+myHeight+',width='+myWidth+',top=15,resizable=yes,scrollbars=yes');
 	if (TBLib.medLinkPopupWindow) {
 		TBLib.medLinkPopupWindow.focus();
 	} else {
@@ -818,6 +819,23 @@ TBLib.handleFormSubmit = function()
 		}
 	});
 	if (!ok) return false;
+
+	// For situations where there's a table column containing checkboxes and the user must tick at least one of them.
+	// Mark up each cell as follows.
+	// <td class="required-checkbox-col" data-error-message="You must select at least one XYZ">
+	var rcc = $(this).find('td.required-checkbox-col');
+	if (rcc.length) {
+		var checkedBoxes = rcc.find('input[type=checkbox]:checked');
+		if (!checkedBoxes.length) {
+			rcc.find('input[type=checkbox]').get(0).scrollIntoView();
+			var msg = "You must select one checkbox in this column";
+			if (rcc.attr('data-error-message')) msg = rcc.attr('data-error-message');
+			alert(msg);
+			rcc.find('input[type=checkbox]').get(0).focus();
+			ok = false;
+			return false;
+		}
+	}
 
 	if ($(this).hasClass('disable-submit-buttons')) {
 		$(this).find('input[type=submit]').attr('disabled', 'disabled');

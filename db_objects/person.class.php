@@ -177,7 +177,7 @@ class Person extends DB_Object
 			  `mobile_tel` varchar(12) NOT NULL default '',
 			  `work_tel` varchar(12) NOT NULL default '',
 			  `remarks` text NOT NULL,
-			  `status` varchar(8) NOT NULL default '',
+			  `status` int(11) NOT NULL,
 			  `status_last_changed` datetime NULL default NULL,
 			  `history` text NOT NULL,
 			  `creator` int(11) NOT NULL default '0',
@@ -632,10 +632,12 @@ class Person extends DB_Object
 	private function _savePhoto()
 	{
 		$db =& $GLOBALS['db'];
-		if ($this->_photo_data) {
+		if ($this->_photo_data === FALSE) {
+			$this->_clearPhoto();
+		} else if ($this->_photo_data) {
 			$SQL = 'REPLACE INTO person_photo (personid, photodata)
 					VALUES ('.(int)$this->id.', '.$db->quote($this->_photo_data).')';
-			$res = $db->query($SQL);
+			$db->query($SQL);
 		}
 	}
 
@@ -787,13 +789,18 @@ class Person extends DB_Object
 		<?php
 	}
 
-	static function getStatusStats()
+	static function getStatusStats($congregationid=NULL)
 	{
-		$dummy = new Person();
 		$sql = 'SELECT ps.label as status, count(p.id)
 				FROM person p
-				JOIN person_status ps ON p.status = ps.id
-				GROUP BY ps.id';
+				JOIN person_status ps ON p.status = ps.id';
+		if ($congregationid !== NULL) {
+			$sql .= ' WHERE congregationid = '.(int)$congregationid;
+		}
+		$sql .= ' 
+			GROUP BY ps.id
+			ORDER BY ps.`rank` ASC
+			';
 		$res = $GLOBALS['db']->queryAll($sql, NULL, NULL, true);
 		return $res;
 	}
@@ -847,7 +854,8 @@ class Person extends DB_Object
 		$res['from'] = '(('.$res['from'].')
 						JOIN family f ON person.familyid = f.id)
 						LEFT JOIN congregation c ON person.congregationid = c.id
-						JOIN age_bracket ab on ab.id = person.age_bracketid ';
+						JOIN age_bracket ab on ab.id = person.age_bracketid
+						JOIN person_status ps ON ps.id = person.status';
 		return $res;
 	}
 
@@ -954,9 +962,11 @@ class Person extends DB_Object
 	{
 		switch ($name) {
 			case 'photo':
-				?>
-				<input type="file" accept="image/*" max-bytes="<?php echo file_upload_max_size(); ?>" name="<?php echo $prefix; ?>photo" />
-				<?php
+				$existing_photo_url = NULL;
+				if ($this->id && $GLOBALS['db']->queryOne('SELECT 1 FROM person_photo WHERE personid = '.(int)$this->id)) {
+					$existing_photo_url = '?call=photo&personid='.(int)$this->id; 
+				}
+				Photo_Handler::printChooser($prefix, $existing_photo_url);
 				break;
 			case 'familyid':
 				?>
@@ -972,15 +982,6 @@ class Person extends DB_Object
 				</div>
 				<?php
 				break;
-			/*case 'age_bracketid':
-				// We look up and apply the default value at this point, 'just in time', so as to avoid
-				// a DB query every time a person object is created.
-				if (!$this->id) {
-					$defaults = $GLOBALS['system']->getDBObjectData('age_bracket', Array('is_default' => 1));
-					$default = key($defaults);
-					$this->values['age_bracketid'] = $default;
-				}*/
-				// intentional fallthrough.
 			case 'congregationid':
 				$stats = $GLOBALS['system']->getDBOBjectData('person_status', Array('active'=> 1));
 				foreach ($stats as $id => $details) {
@@ -1058,6 +1059,10 @@ class Person extends DB_Object
 				}
 				unset($row[$k]); // so it doesn't upset db_object::fromCsvRow
 			}
+		}
+
+		if (!empty($row['status']) && !is_int($row['status'])) {
+			$row['status'] = Person_Status::getByLabel($row['status']);
 		}
 
 		if (isset($row['age_bracket']) && strlen($row['age_bracket'])) {

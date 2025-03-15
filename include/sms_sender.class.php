@@ -272,8 +272,8 @@ Class SMS_Sender
 			$response = str_replace("\r", '', $response);
 			if ($okReg = self::_getSetting('RESPONSE_OK_REGEX')) {
 				foreach ($recips as $id => $recip) {
-					$reps['_RECIPIENT_INTERNATIONAL_'] = self::internationaliseNumber($recip['mobile_tel']);
-					$reps['_RECIPIENT_'] = $recip['mobile_tel'];
+					$reps['_RECIPIENT_INTERNATIONAL_'] = self::internationaliseNumber(self::normalizeNumber($recip['mobile_tel']));
+					$reps['_RECIPIENT_'] = self::normalizeNumber($recip['mobile_tel']);
 					$pattern = '/' . str_replace(array_keys($reps), array_values($reps), $okReg) . '/m';
 					if (preg_match($pattern, $response)) {
 						$successes[$id] = $recip;
@@ -315,13 +315,25 @@ Class SMS_Sender
 		return $number;
 	}
 
+	/**
+     * Remove any whitespace or non-digits from telephone number.
+     * https://github.com/tbar0970/jethro-pmm/issues/1093
+	 */
+    private static function normalizeNumber($number)
+	{
+		if ($number !== null) {
+			return preg_replace('/\D/', '', $number);
+		}
+		return null;
+	}
+
 	private static function logSuccess($recip_count, $message)
 	{
 		if (self::$configPrefix !== self::DEFAULT_CONFIG_PREFIX) return; // Log doesn't apply when using dedicated 2FA settings.
 		
 		if (defined('SMS_SEND_LOGFILE') && ($file = constant('SMS_SEND_LOGFILE'))) {
+			if (!file_exists($file)) touch($file);
 			if (filesize(SMS_SEND_LOGFILE) < 3) {
-				if (!file_exists($file)) touch($file);
 				// Write a header row
 				$headers = Array('Timestamp', 'Username', 'RecipientCount', 'MessageLength', 'Content');
 				$json = json_encode($headers);
@@ -402,5 +414,6 @@ Class SMS_Sender
 			}
 		}
 	}
+
 
 }

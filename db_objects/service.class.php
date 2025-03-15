@@ -312,11 +312,7 @@ class service extends db_object
 					$br = new Bible_Ref($reading['bible_ref']);
 					$res[] = $br->getLinkedShortString();
 				}
-				$res2 = Array();
-				foreach (array_chunk($res, 2) as $chunk) {
-					$res2[] = implode(', ', $chunk);
-				}
-				echo implode(', <br />', $res2);
+				echo implode(', ', $res);
 				break;
 
 			case 'bible_all':
@@ -329,11 +325,7 @@ class service extends db_object
 					if ($reading['to_preach']) $entry = '<strong>'.$entry.'</strong>';
 					$res[] = $entry;
 				}
-				$res2 = Array();
-				foreach (array_chunk($res, 2) as $chunk) {
-					$res2[] = implode(', ', $chunk);
-				}
-				echo implode(', <br />', $res2);
+				echo implode(', ', $res);
 				break;
 
 			case 'format_title':
@@ -502,7 +494,7 @@ class service extends db_object
 	public function replaceKeywords($text)
 	{
 		$matches = Array();
-		preg_match_all('/%([a-zA-Z0-9#_\/]*)%/', $text, $matches);
+		preg_match_all('/%([a-zA-Z0-9#_\/]*)%/', (string)$text, $matches);
 		foreach ($matches[1] as $keyword) {
 			$text = str_replace('%'.$keyword.'%', $this->getKeywordReplacement($keyword), $text);
 		}
@@ -741,7 +733,7 @@ class service extends db_object
 						$title = str_replace('%title%', $item['title'], $title);
 						$title = $this->replaceKeywords($title);
 						echo ents($title);
-						if ($item['note']) echo '<br /><i><small>'.nl2br(ents($item['note'])).'</small></i>';
+						if ($item['note']) echo '<div class="smallprint"><small><i>'.nl2br(ents($item['note'])).'</i></small></div>';
 						?>
 					</td>
 					<td class="narrow"><?php echo ents($item['personnel']); ?></td>

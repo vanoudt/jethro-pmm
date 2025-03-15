@@ -244,9 +244,11 @@ class family extends db_object
 	function printFieldInterface($name, $prefix='')
 	{
 		if ($name == 'photo') {
-			?>
-			<input type="file" accept="image/*" name="photo" />
-			<?php
+			$existing_photo_url = NULL;
+			if ($this->id && $GLOBALS['db']->queryOne('SELECT 1 FROM family_photo WHERE familyid = '.(int)$this->id)) {
+				$existing_photo_url = '?call=photo&familyid='.(int)$this->id; 
+			}
+			Photo_Handler::printChooser($prefix, $existing_photo_url);
 			return;
 		}
 
@@ -479,10 +481,12 @@ class family extends db_object
 
 	private function savePhoto() {
 		$db =& $GLOBALS['db'];
-		if ($this->_photo_data) {
+		if ($this->_photo_data === FALSE) {
+			$this->clearPhoto();
+		} else if ($this->_photo_data) {
 			$SQL = 'REPLACE INTO family_photo (familyid, photodata)
 					VALUES ('.(int)$this->id.', '.$db->quote($this->_photo_data).')';
-			$res = $db->query($SQL);
+			$db->query($SQL);
 		}
 	}
 
