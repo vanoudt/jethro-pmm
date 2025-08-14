@@ -24,6 +24,6 @@ require_once JETHRO_ROOT.'/include/init.php';
 /** @var JethroDB $db */
 $db = $GLOBALS['db'];
 
-include 'upgradelibs/Status_Upgrader.class.php';
+include JETHRO_ROOT.'/upgrades/upgradelibs/status_upgrader.class.php';
 Status_Upgrader::run();
 echo "done \n";

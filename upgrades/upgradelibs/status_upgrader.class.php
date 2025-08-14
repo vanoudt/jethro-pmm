@@ -56,7 +56,7 @@ class Status_Upgrader
 				if (self::$person_status[$newval]) {
 					return $newval;
 				} else {
-					fail("No person_status with id $newval");
+					exit("No person_status with id $newval");
 				}
 			}
 		}
