@@ -135,6 +135,9 @@ class User_System extends Abstract_User_System
 		$_SESSION['last_activity_time'] = time();
 		include_once 'include/size_detector.class.php';
 		SizeDetector::processRequest();
+		session_write_close();
+		header('Location: '.build_url(Array())); // the login form was POSTed; we redirect so the subsequent page load is a clean GET request.
+		exit;
 	}
 
 
@@ -304,6 +307,9 @@ class User_System extends Abstract_User_System
 	 */
 	private function _require2FA($user_details)
 	{
+		// Allow 2FA to be forcibly turned off regardless of admin settings e.g. for dev environments
+		if (defined('2FA_ENABLED') && constant('2FA_ENABLED')==False) return FALSE;
+
 		if (!empty($_COOKIE['Jethro2FATrust'])) {
 			$db = $GLOBALS['db'];
 			$SQL = 'SELECT * FROM 2fa_trust
