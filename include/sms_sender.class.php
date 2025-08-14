@@ -228,7 +228,10 @@ Class SMS_Sender
 		}
 
 		$header = "" . self::_getSetting('HEADER_TEMPLATE');
-		$header = $header . "Content-Length: " . strlen($content) . "\r\n" . "Content-Type: application/x-www-form-urlencoded\r\n";
+//		$header = $header . "Content-Length: " . strlen($content) . "\r\n" . "Content-Type: application/x-www-form-urlencoded\r\n";
+		$headerarray = explode("\n", $header);
+        $headerarray[] = 'Content-Type: application/json';
+
 
 		$opts = Array(
 			'http' => Array(
@@ -237,28 +240,104 @@ Class SMS_Sender
 				'header' => $header
 			)
 		);
-		// To work with HTTP Server errors ourselves, override the system error_handler
-		set_error_handler(function($errno, $errstr, $errfile, $errline, array $errcontext = null) {
-			// error was suppressed with the @-operator
-			if (0 === error_reporting()) {
-				return false;
-			}
-			throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
-		});
-		try {
-			$fp = fopen(self::_getSetting('URL'), 'r', false, stream_context_create($opts));
-			if (!$fp) {
-				$http_error = "ERROR: Unable to connect to SMS Server.<br>" . join("<br>", $http_response_header);
-				return array("executed" => false, "successes" => array(), "failures" => array(), "rawresponse" => $http_error, "error" => $http_error);
-			} else {
-				$response = stream_get_contents($fp);
-				fclose($fp);
-			}
-		} catch (Exception $e) {
-			$error = "ERROR: Unable to connect to SMS Server. " . $e->getMessage();
-			return array("executed" => false, "successes" => array(), "failures" => array(), "rawresponse" => $error, "error" => $error);
+
+		 $intls = array();
+		foreach ($mobile_tels as $t) {
+			$intls[] = self::internationaliseNumber($t);
 		}
-		restore_error_handler(); // Restore system error_handler
+		$maxLengthOfLine = 1000;
+		$messageparts = [];
+		if (strlen($message) > $maxLengthOfLine) {
+			$words = explode(' ', $message);
+
+			$currentLine = '';
+			$lineAccumulator = '';
+			foreach ($words as $currentWord) {
+				$currentWordWithSpace = sprintf('%s ', $currentWord);
+				$lineAccumulator .= $currentWordWithSpace;
+				if (strlen($lineAccumulator) < $maxLengthOfLine) {
+						$currentLine = $lineAccumulator;
+						continue;
+				}
+				$messageparts[] = $currentLine;
+				// Overwrite the current line and accumulator with the current word
+				$currentLine = $currentWordWithSpace;
+				$lineAccumulator = $currentWordWithSpace;
+			}
+			if ($currentLine !== '') {
+				$messageparts[] = $currentLine;
+			}
+		} else {
+			$messageparts[] = $message;
+		}
+
+       foreach ($messageparts as $msg) {
+			//foreach ($intls as $iphonenumber) {
+			//      $mycontent = str_replace('_RECIPIENTS_INTERNATIONAL_COMMAS_', $iphonenumber, $content);
+			$messagejson_o = array();
+			$messagejson_o['content'] = $msg;
+			$messagejson_o['from'] =  "+61424284777";
+			$messagejson_o['sim'] = 'DEFAULT';
+			//      $messagejson_o['to'] = $iphonenumber;
+			$messagejson_o['to'] = $intls;
+			$messagejson = json_encode($messagejson_o);
+			// error_log(print_r($messagejson, true));
+			$crl = curl_init();
+
+			curl_setopt_array($crl, array(
+					CURLOPT_URL => self::_getSetting('URL'),
+					CURLOPT_RETURNTRANSFER => true,
+					CURLOPT_ENCODING => '',
+					CURLOPT_MAXREDIRS => 10,
+					CURLOPT_TIMEOUT => 0,
+					CURLOPT_FOLLOWLOCATION => true,
+					CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+					CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+					CURLOPT_CUSTOMREQUEST => 'POST',
+					CURLOPT_POSTFIELDS => $messagejson,
+					CURLOPT_HTTPHEADER => $headerarray,
+			));
+
+			error_log("Headers: " . print_r($headerarray, true));
+			$response .= curl_exec($crl);
+			// error_log(curl_errno($crl));
+			if (curl_errno($crl)) {
+    			$error_msg = curl_error($crl);
+    			// Handle the error (e.g., log it or display a user-friendly message)
+    			error_log( "cURL Error: " . $curl_errno($crl) . " - " . $error_msg);
+			} else {
+
+			}
+			// error_log("URL: " . self::_getSetting('URL'));
+			// error_log("Response: " . print_r($response, true));
+
+			curl_close($crl);
+			//}
+			sleep(2);
+	}
+
+		// // To work with HTTP Server errors ourselves, override the system error_handler
+		// set_error_handler(function($errno, $errstr, $errfile, $errline, array $errcontext = null) {
+		// 	// error was suppressed with the @-operator
+		// 	if (0 === error_reporting()) {
+		// 		return false;
+		// 	}
+		// 	throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+		// });
+		// try {
+		// 	$fp = fopen(self::_getSetting('URL'), 'r', false, stream_context_create($opts));
+		// 	if (!$fp) {
+		// 		$http_error = "ERROR: Unable to connect to SMS Server.<br>" . join("<br>", $http_response_header);
+		// 		return array("executed" => false, "successes" => array(), "failures" => array(), "rawresponse" => $http_error, "error" => $http_error);
+		// 	} else {
+		// 		$response = stream_get_contents($fp);
+		// 		fclose($fp);
+		// 	}
+		// } catch (Exception $e) {
+		// 	$error = "ERROR: Unable to connect to SMS Server. " . $e->getMessage();
+		// 	return array("executed" => false, "successes" => array(), "failures" => array(), "rawresponse" => $error, "error" => $error);
+		// }
+		// restore_error_handler(); // Restore system error_handler
 		$executed = !empty($response);
 		$error = null;
 		if ($errorReg = ifdef(self::_getSetting('RESPONSE_ERROR_REGEX'))) {
