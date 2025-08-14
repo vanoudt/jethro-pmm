@@ -1,6 +1,6 @@
 <?php
 
-Class SMS_Sender
+class SMS_Sender
 {
 	// Prefix for relevant config constants.
 	// Normal config uses constants starting with SMS_HTTP_
@@ -24,7 +24,7 @@ Class SMS_Sender
 	 */
 	private static function _getSetting($var)
 	{
-		$constName = self::$configPrefix.$var;
+		$constName = self::$configPrefix . $var;
 		return ifdef($constName);
 	}
 
@@ -45,7 +45,7 @@ Class SMS_Sender
 	 */
 	public static function getRecipients()
 	{
-		$personids = Array();
+		$personids = array();
 		if (!empty($_REQUEST['personid'])) {
 			if (is_array($_REQUEST['personid'])) {
 				$personids = $_REQUEST['personid'];
@@ -53,7 +53,7 @@ Class SMS_Sender
 				$personids = explode(',', $_REQUEST['personid']);
 			}
 		}
-		if (empty($personids)) $personids = Array(); // to overcome blank strings etc
+		if (empty($personids)) $personids = array(); // to overcome blank strings etc
 		if (!empty($_REQUEST['queryid'])) {
 			$query = $GLOBALS['system']->getDBObject('person_query', (int)$_REQUEST['queryid']);
 			$personids = array_merge($personids, $query->getResultPersonIDs());
@@ -67,18 +67,18 @@ Class SMS_Sender
 		switch ($smstype) {
 			case 'family':
 				$families = Family::getFamilyDataByMemberIDs($personids);
-				$recips = $GLOBALS['system']->getDBObjectData('person', Array('(age_bracketid' => Age_Bracket::getAdults(), '(familyid' => array_keys($families), '!mobile_tel' => '', '!(status' => Person_Status::getArchivedIDs()), 'AND');
-				$blanks = $GLOBALS['system']->getDBObjectData('person', Array('(age_bracketid' => Age_Bracket::getAdults(), '(familyid' => array_keys($families), 'mobile_tel' => '', '!(status' => Person_Status::getArchivedIDs()), 'AND');
-				$archived = $GLOBALS['system']->getDBObjectData('person', Array('(age_bracketid' => Age_Bracket::getAdults(), '(familyid' => array_keys($families), '(status' => Person_Status::getArchivedIDs()), 'AND');
+				$recips = $GLOBALS['system']->getDBObjectData('person', array('(age_bracketid' => Age_Bracket::getAdults(), '(familyid' => array_keys($families), '!mobile_tel' => '', '!(status' => Person_Status::getArchivedIDs()), 'AND');
+				$blanks = $GLOBALS['system']->getDBObjectData('person', array('(age_bracketid' => Age_Bracket::getAdults(), '(familyid' => array_keys($families), 'mobile_tel' => '', '!(status' => Person_Status::getArchivedIDs()), 'AND');
+				$archived = $GLOBALS['system']->getDBObjectData('person', array('(age_bracketid' => Age_Bracket::getAdults(), '(familyid' => array_keys($families), '(status' => Person_Status::getArchivedIDs()), 'AND');
 				break;
 			case 'person':
 			default:
-				$recips = $GLOBALS['system']->getDBObjectData('person', Array('id' => $personids, '!mobile_tel' => '', '!(status' => Person_Status::getArchivedIDs()), 'AND');
-				$blanks = $GLOBALS['system']->getDBObjectData('person', Array('id' => $personids, 'mobile_tel' => '', '!(status' => Person_Status::getArchivedIDs()), 'AND');
-				$archived = $GLOBALS['system']->getDBObjectData('person', Array('id' => $personids, '(status' => Person_Status::getArchivedIDs()), 'AND');
+				$recips = $GLOBALS['system']->getDBObjectData('person', array('id' => $personids, '!mobile_tel' => '', '!(status' => Person_Status::getArchivedIDs()), 'AND');
+				$blanks = $GLOBALS['system']->getDBObjectData('person', array('id' => $personids, 'mobile_tel' => '', '!(status' => Person_Status::getArchivedIDs()), 'AND');
+				$archived = $GLOBALS['system']->getDBObjectData('person', array('id' => $personids, '(status' => Person_Status::getArchivedIDs()), 'AND');
 				$GLOBALS['system']->includeDBClass('person');
 		}
-		return Array($recips, $blanks, $archived);
+		return array($recips, $blanks, $archived);
 	}
 
 	/**
@@ -94,52 +94,50 @@ Class SMS_Sender
 		switch ($encoding) {
 			case 'GSM0338':
 				$gsm0338 = array(
-					'@','Δ',' ','0','¡','P','¿','p',
-					'£','_','!','1','A','Q','a','q',
-					'$','Φ','"','2','B','R','b','r',
-					'¥','Γ','#','3','C','S','c','s',
-					'è','Λ','¤','4','D','T','d','t',
-					'é','Ω','%','5','E','U','e','u',
-					'ù','Π','&','6','F','V','f','v',
-					'ì','Ψ','\'','7','G','W','g','w',
-					'ò','Σ','(','8','H','X','h','x',
-					'Ç','Θ',')','9','I','Y','i','y',
-					"\n",'Ξ','*',':','J','Z','j','z',
-					'Ø',"\x1B",'+',';','K','Ä','k','ä',
-					'ø','Æ',',','<','L','Ö','l','ö',
-					"\r",'æ','-','=','M','Ñ','m','ñ',
-					'Å','ß','.','>','N','Ü','n','ü',
-					'å','É','/','?','O','§','o','à'
-				 );
+					'@', 'Δ', ' ', '0', '¡', 'P', '¿', 'p',
+					'£', '_', '!', '1', 'A', 'Q', 'a', 'q',
+					'$', 'Φ', '"', '2', 'B', 'R', 'b', 'r',
+					'¥', 'Γ', '#', '3', 'C', 'S', 'c', 's',
+					'è', 'Λ', '¤', '4', 'D', 'T', 'd', 't',
+					'é', 'Ω', '%', '5', 'E', 'U', 'e', 'u',
+					'ù', 'Π', '&', '6', 'F', 'V', 'f', 'v',
+					'ì', 'Ψ', '\'', '7', 'G', 'W', 'g', 'w',
+					'ò', 'Σ', '(', '8', 'H', 'X', 'h', 'x',
+					'Ç', 'Θ', ')', '9', 'I', 'Y', 'i', 'y',
+					"\n", 'Ξ', '*', ':', 'J', 'Z', 'j', 'z',
+					'Ø', "\x1B", '+', ';', 'K', 'Ä', 'k', 'ä',
+					'ø', 'Æ', ',', '<', 'L', 'Ö', 'l', 'ö',
+					"\r", 'æ', '-', '=', 'M', 'Ñ', 'm', 'ñ',
+					'Å', 'ß', '.', '>', 'N', 'Ü', 'n', 'ü',
+					'å', 'É', '/', '?', 'O', '§', 'o', 'à'
+				);
 				if (function_exists('mb_strlen')) {
 					$len = mb_strlen($message, 'UTF-8');
 					$out = '';
-					for ($i=0; $i < $len; $i++) {
-						$char = mb_substr($message,$i,1,'UTF-8');
+					for ($i = 0; $i < $len; $i++) {
+						$char = mb_substr($message, $i, 1, 'UTF-8');
 						if (in_array($char, $gsm0338)) {
 							$out .= $char;
 						} else {
-							error_log('SMS sender Discarded invalid char "'.$char.'" (ord '.ord($char).')');
+							error_log('SMS sender Discarded invalid char "' . $char . '" (ord ' . ord($char) . ')');
 						}
 					}
 					return $out;
 				} else {
 					$len = strlen($message);
 					$out = '';
-					for ($i=0; $i < $len; $i++) {
-						$char = substr($message,$i,1);
+					for ($i = 0; $i < $len; $i++) {
+						$char = substr($message, $i, 1);
 						if (in_array($char, $gsm0338)) {
 							$out .= $char;
 						} else {
-							error_log('SMS sender Discarded invalid char "'.$char.'" (ord '.ord($char).')');
+							error_log('SMS sender Discarded invalid char "' . $char . '" (ord ' . ord($char) . ')');
 						}
 					}
 					return $out;
-
 				}
 		}
 		return $message;
-
 	}
 
 	/**
@@ -165,10 +163,10 @@ Class SMS_Sender
 	 *			'error' => string  (details of any error that occurred)
 	 * )
 	 */
-	public static function sendMessage($message, $recips, $saveAsNote=FALSE)
+	public static function sendMessage($message, $recips, $saveAsNote = FALSE)
 	{
 		$message = self::cleanseMessage($message);
-		$mobile_tels = Array();
+		$mobile_tels = array();
 		if (!empty($recips)) {
 			foreach ($recips as $recip) {
 				$mobile_tels[$recip['mobile_tel']] = 1;
@@ -192,8 +190,10 @@ Class SMS_Sender
 					trigger_error("Your SMS config includes the _USER_MOBILE_ keyword but there is no current user, and no other senderID has been specified.  Exiting.", E_USER_ERROR);
 				}
 				if (!strlen($me->getValue('mobile_tel'))) {
-					return Array('executed' => FALSE, 'successes' => Array(), 'failures' => Array(), 'rawresponse' => '',
-						'error' => 'You must save your own mobile number before you can send an SMS');
+					return array(
+						'executed' => FALSE, 'successes' => array(), 'failures' => array(), 'rawresponse' => '',
+						'error' => 'You must save your own mobile number before you can send an SMS'
+					);
 				}
 				$usermobile = $me->getValue('mobile_tel');
 			}
@@ -214,9 +214,10 @@ Class SMS_Sender
 		if (ifdef('SMS_RECIPIENT_ARRAY_PARAMETER')) {
 			$content = str_replace('_RECIPIENTS_ARRAY_', SMS_RECIPIENT_ARRAY_PARAMETER . '[]=' . implode('&' . SMS_RECIPIENT_ARRAY_PARAMETER . '[]=', $mobile_tels), $content);
 		}
-		if (strlen(ifdef('SMS_LOCAL_PREFIX')) && strlen(ifdef('SMS_INTERNATIONAL_PREFIX')) && FALSE !== strpos(self::_getSetting('HEADER_TEMPLATE'), '_RECIPIENTS_INTERNATIONAL')
+		if (
+			strlen(ifdef('SMS_LOCAL_PREFIX')) && strlen(ifdef('SMS_INTERNATIONAL_PREFIX')) && FALSE !== strpos(self::_getSetting('HEADER_TEMPLATE'), '_RECIPIENTS_INTERNATIONAL')
 		) {
-			$intls = Array();
+			$intls = array();
 			foreach ($mobile_tels as $t) {
 				$intls[] = self::internationaliseNumber($t);
 			}
@@ -228,46 +229,112 @@ Class SMS_Sender
 		}
 
 		$header = "" . self::_getSetting('HEADER_TEMPLATE');
-		$header = $header . "Content-Length: " . strlen($content) . "\r\n" . "Content-Type: application/x-www-form-urlencoded\r\n";
+		//$header = $header . "Content-Length: " . strlen($content) . "\r\n" . "Content-Type: application/x-www-form-urlencoded\r\n";
+		$headerarray = explode("\n", $header);
+		$headerarray[] = 'Content-Type: application/json';
 
-		$opts = Array(
-			'http' => Array(
+		$opts = array(
+			'http' => array(
 				'method' => 'POST',
 				'content' => $content,
 				'header' => $header
 			)
 		);
-		// To work with HTTP Server errors ourselves, override the system error_handler
-		set_error_handler(function($errno, $errstr, $errfile, $errline, array $errcontext) {
-			// error was suppressed with the @-operator
-			if (0 === error_reporting()) {
-				return false;
-			}
-			throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
-		});
-		try {
-			$fp = fopen(self::_getSetting('URL'), 'r', false, stream_context_create($opts));
-			if (!$fp) {
-				$http_error = "ERROR: Unable to connect to SMS Server.<br>" . join("<br>", $http_response_header);
-				return array("executed" => false, "successes" => array(), "failures" => array(), "rawresponse" => $http_error, "error" => $http_error);
-			} else {
-				$response = stream_get_contents($fp);
-				fclose($fp);
-			}
-		} catch (Exception $e) {
-			$error = "ERROR: Unable to connect to SMS Server. " . $e->getMessage();
-			return array("executed" => false, "successes" => array(), "failures" => array(), "rawresponse" => $error, "error" => $error);
+		$intls = array();
+		foreach ($mobile_tels as $t) {
+			$intls[] = self::internationaliseNumber($t);
 		}
-		restore_error_handler(); // Restore system error_handler
+		$maxLengthOfLine = 1000;
+		$messageparts = [];
+		if (strlen($message) > $maxLengthOfLine) {
+			$words = explode(' ', $message);
+
+			$currentLine = '';
+			$lineAccumulator = '';
+			foreach ($words as $currentWord) {
+				$currentWordWithSpace = sprintf('%s ', $currentWord);
+				$lineAccumulator .= $currentWordWithSpace;
+				if (strlen($lineAccumulator) < $maxLengthOfLine) {
+					$currentLine = $lineAccumulator;
+					continue;
+				}
+				$messageparts[] = $currentLine;
+				// Overwrite the current line and accumulator with the current word
+				$currentLine = $currentWordWithSpace;
+				$lineAccumulator = $currentWordWithSpace;
+			}
+
+			if ($currentLine !== '') {
+				$messageparts[] = $currentLine;
+			}
+		} else {
+			$messageparts[] = $message;
+		}
+
+		foreach ($messageparts as $msg) {
+			//foreach ($intls as $iphonenumber) {
+			//	$mycontent = str_replace('_RECIPIENTS_INTERNATIONAL_COMMAS_', $iphonenumber, $content);
+			$messagejson_o = array();
+			$messagejson_o['content'] = $msg;
+			$messagejson_o['from'] =  "+61424284777";
+			$messagejson_o['sim'] = 'DEFAULT';
+			//	$messagejson_o['to'] = $iphonenumber;
+			$messagejson_o['to'] = $intls;
+			$messagejson = json_encode($messagejson_o);
+			$curl = curl_init();
+
+			curl_setopt_array($curl, array(
+				CURLOPT_URL => self::_getSetting('URL'),
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_ENCODING => '',
+				CURLOPT_MAXREDIRS => 10,
+				CURLOPT_TIMEOUT => 0,
+				CURLOPT_FOLLOWLOCATION => true,
+				CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+				CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+				CURLOPT_CUSTOMREQUEST => 'POST',
+				CURLOPT_POSTFIELDS => $messagejson,
+				CURLOPT_HTTPHEADER => $headerarray,
+			));
+
+			$response .= curl_exec($curl);
+
+			curl_close($curl);
+			//}
+			sleep(2);
+		}
+
+		// To work with HTTP Server errors ourselves, override the system error_handler
+		// set_error_handler(function ($errno, $errstr, $errfile, $errline, array $errcontext) {
+		// 	// error was suppressed with the @-operator
+		// 	if (0 === error_reporting()) {
+		// 		return false;
+		// 	}
+		// 	throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+		// });
+		// try {
+		// 	$fp = fopen(self::_getSetting('URL'), 'r', false, stream_context_create($opts));
+		// 	if (!$fp) {
+		// 		$http_error = "ERROR: Unable to connect to SMS Server.<br>" . join("<br>", $http_response_header);
+		// 		return array("executed" => false, "successes" => array(), "failures" => array(), "rawresponse" => $http_error, "error" => $http_error);
+		// 	} else {
+		// 		$response = stream_get_contents($fp);
+		// 		fclose($fp);
+		// 	}
+		// } catch (Exception $e) {
+		// 	$error = "ERROR: Unable to connect to SMS Server. " . $e->getMessage();
+		// 	return array("executed" => false, "successes" => array(), "failures" => array(), "rawresponse" => $error, "error" => $error);
+		// }
+		// $error = "$response";
+		// restore_error_handler(); // Restore system error_handler
 		$executed = !empty($response);
 		$error = null;
 		if ($errorReg = ifdef(self::_getSetting('RESPONSE_ERROR_REGEX'))) {
 			if (preg_match("/" . $errorReg . "/", $response)) {
 				$executed = FALSE;
-				$error = "$response";
 			}
 		}
-		$successes = $failures = Array();
+		$successes = $failures = array();
 		if ($executed) {
 			$response = str_replace("\r", '', $response);
 			if ($okReg = self::_getSetting('RESPONSE_OK_REGEX')) {
@@ -306,9 +373,10 @@ Class SMS_Sender
 	 */
 	private static function internationaliseNumber($number)
 	{
-		if (strlen(ifdef('SMS_LOCAL_PREFIX'))
-				&& strlen(ifdef('SMS_INTERNATIONAL_PREFIX'))
-				&& (0 === strpos($number, (string) SMS_LOCAL_PREFIX)) // convert to string in case it is just a number, eg 0
+		if (
+			strlen(ifdef('SMS_LOCAL_PREFIX'))
+			&& strlen(ifdef('SMS_INTERNATIONAL_PREFIX'))
+			&& (0 === strpos($number, (string) SMS_LOCAL_PREFIX)) // convert to string in case it is just a number, eg 0
 		) {
 			$number = SMS_INTERNATIONAL_PREFIX . substr($number, strlen(SMS_LOCAL_PREFIX));
 		}
@@ -318,14 +386,14 @@ Class SMS_Sender
 	private static function logSuccess($recip_count, $message)
 	{
 		if (self::$configPrefix !== self::DEFAULT_CONFIG_PREFIX) return; // Log doesn't apply when using dedicated 2FA settings.
-		
+
 		if (defined('SMS_SEND_LOGFILE') && ($file = constant('SMS_SEND_LOGFILE'))) {
 			if (filesize(SMS_SEND_LOGFILE) < 3) {
 				if (!file_exists($file)) touch($file);
 				// Write a header row
-				$headers = Array('Timestamp', 'Username', 'RecipientCount', 'MessageLength', 'Content');
+				$headers = array('Timestamp', 'Username', 'RecipientCount', 'MessageLength', 'Content');
 				$json = json_encode($headers);
-				error_log($json."\n", 3, $file);
+				error_log($json . "\n", 3, $file);
 			}
 			if (!empty($GLOBALS['user_system'])) {
 				$username = $GLOBALS['user_system']->getCurrentUser('username');
@@ -333,48 +401,48 @@ Class SMS_Sender
 				$username = '[System]';
 			}
 			$msg_trunc = strlen($message) > 30 ? substr($message, 0, 27) . '...' : $message;
-			$vals = Array(date('c'), $username, $recip_count, strlen($message), $msg_trunc);
+			$vals = array(date('c'), $username, $recip_count, strlen($message), $msg_trunc);
 			$json = json_encode($vals);
-			error_log($json."\n", 3, $file);
+			error_log($json . "\n", 3, $file);
 		}
 	}
 
 	public static function printTextbox()
 	{
-		?>
+?>
 		<textarea id="sms_message" name="message" data-segment-length="<?php echo ifdef('SMS_SEGMENT_LENGTH', 160); ?>" data-segment-cost="<?php echo ifdef('SMS_SEGMENT_COST', "0"); ?>" class="span4" rows="5" cols="30" maxlength="<?php echo SMS_MAX_LENGTH; ?>"></textarea>
 		<div class="smscharactercount soft"><?php echo SMS_MAX_LENGTH; ?> characters remaining.</div>
-		<?php
+	<?php
 	}
 
 	public static function printModal()
 	{
-		?>
+	?>
 		<div id="send-sms-modal" class="modal sms-modal hide fade" role="dialog" aria-hidden="true">
 			<div class="modal-header">
 				<h4>Send SMS to <span class="sms_recipients"></span></h4>
 			</div>
 			<div class="modal-body form-horizontal">
 				Message:<br />
-			<?php
-			self::printTextbox();
-			if ($GLOBALS['user_system']->havePerm(PERM_EDITNOTE) && defined('SMS_SAVE_TO_NOTE_SUBJECT')) {
-				?>
-				<label class="checkbox">
-					<?php
-					$savebydefault = "";
-					if (defined("SMS_SAVE_TO_NOTE_BY_DEFAULT")) {
-						if (SMS_SAVE_TO_NOTE_BY_DEFAULT) {
-							$savebydefault = 'checked="checked"';
-						}
-					}
-					?>
-					<input type="checkbox" name="saveasnote" class="saveasnote" <?php echo $savebydefault; ?> />
-					Save as Note
-				</label>
 				<?php
-			}
-			?>
+				self::printTextbox();
+				if ($GLOBALS['user_system']->havePerm(PERM_EDITNOTE) && defined('SMS_SAVE_TO_NOTE_SUBJECT')) {
+				?>
+					<label class="checkbox">
+						<?php
+						$savebydefault = "";
+						if (defined("SMS_SAVE_TO_NOTE_BY_DEFAULT")) {
+							if (SMS_SAVE_TO_NOTE_BY_DEFAULT) {
+								$savebydefault = 'checked="checked"';
+							}
+						}
+						?>
+						<input type="checkbox" name="saveasnote" class="saveasnote" <?php echo $savebydefault; ?> />
+						Save as Note
+					</label>
+				<?php
+				}
+				?>
 			</div>
 			<div class="modal-footer">
 				<div class="results"></div>
@@ -382,7 +450,7 @@ Class SMS_Sender
 				<button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
 			</div>
 		</div>
-		<?php
+<?php
 	}
 
 	private static function saveAsNote($recipients, $message)
@@ -402,5 +470,4 @@ Class SMS_Sender
 			}
 		}
 	}
-
 }
